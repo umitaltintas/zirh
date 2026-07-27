@@ -1,5 +1,5 @@
 /* ZIRH — salonda çekim olmasa da açılsın diye basit bir önbellek. */
-const CACHE = "zirh-v3";
+const CACHE = "zirh-v4";
 const SHELL = [
   "./",
   "./index.html",

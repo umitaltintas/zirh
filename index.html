@@ -114,9 +114,13 @@ button{-webkit-tap-highlight-color:transparent}
 .wrap{max-width:var(--wrap);margin:0 auto;padding:0 16px}
 main{
   flex:1;min-height:0;width:100%;
-  overflow-y:auto;overflow-x:hidden;
+  overflow-y:auto;
+  /* clip, hidden'dan farklı olarak kaydırma kutusu oluşturmaz; odaklanan bir
+     öğe yüzünden arayüzün yana kaymasını baştan imkânsız kılar. */
+  overflow-x:clip;
   -webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;
 }
+@supports not (overflow: clip){ main{overflow-x:hidden} }
 main.wrap{max-width:none;padding:0}
 main>.view{max-width:var(--wrap);margin:0 auto;padding-left:16px;padding-right:16px}
 .vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
@@ -571,10 +575,12 @@ html[data-theme="light"] .heroprog .bar{background:#E3E5EA}
   background:var(--bg);
   border-top:1px solid var(--line);
   padding-bottom:env(safe-area-inset-bottom);
-  display:flex;
+  display:flex;justify-content:center;
 }
 .tabs button{
-  flex:1;height:var(--nav-h);border:0;background:transparent;cursor:pointer;
+  /* Geniş ekranda butonlar içerik sütununu aşmasın, ortada kalsın. */
+  flex:1 1 0;max-width:calc(var(--wrap) / 3);
+  height:var(--nav-h);border:0;background:transparent;cursor:pointer;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
   color:var(--text-3);font-size:10.5px;font-weight:600;letter-spacing:.03em;
 }
@@ -1805,7 +1811,11 @@ function go(name, push){
   VIEWS.forEach(v => {
     const el = $("v-"+v);
     el.classList.remove("on","in-left","in-right");
-    if(v === name) el.classList.add("on", dir);
+    if(v === name){
+      el.classList.add("on", dir);
+      /* Giriş animasyonu bitince sınıfı bırak; yarıda kesilirse dönüşüm takılı kalmasın. */
+      el.addEventListener("animationend", () => el.classList.remove("in-left","in-right"), {once:true});
+    }
     $("tab-"+v).setAttribute("aria-selected", v === name ? "true" : "false");
   });
 
@@ -1911,9 +1921,11 @@ if("serviceWorker" in navigator){
       setInterval(check, 30 * 60 * 1000);
     }).catch(() => {});
 
+    /* İlk kurulumda da controllerchange yayılır; o an yenilemek gereksiz. */
+    const hadController = !!navigator.serviceWorker.controller;
     let reloading = false;
     navigator.serviceWorker.addEventListener("controllerchange", () => {
-      if(reloading) return;
+      if(!hadController || reloading) return;
       if(Object.keys(session(false).sets).length){
         toast("Yeni sürüm hazır, seanstan sonra geçilecek");
         return;
