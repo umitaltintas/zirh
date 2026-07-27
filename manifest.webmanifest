@@ -1,7 +1,7 @@
 {
   "name": "ZIRH · Antrenman",
   "short_name": "ZIRH",
-  "description": "Kas, vücudun zırhı. İki günlük başlangıç antrenman programı.",
+  "description": "Kas, vücudun zırhı. Beş seviyeli antrenman programı, hareket videoları ve öğün önerileri.",
   "lang": "tr",
   "dir": "ltr",
   "start_url": "./",

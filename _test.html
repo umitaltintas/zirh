@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>ZIRH testleri</title></head>
+<body style="margin:0;font:13px/1.5 monospace">
+<div id="out">çalışıyor…</div>
+<script>
+var lines = [], pass = 0, fail = 0;
+
+function ok(name, cond, detail){
+  if(cond){ pass++; lines.push("PASS  " + name); }
+  else { fail++; lines.push("FAIL  " + name + (detail ? "  → " + detail : "")); }
+}
+
+function frame(w, h){
+  return new Promise(function(res){
+    var f = document.createElement("iframe");
+    f.style.cssText = "width:" + w + "px;height:" + h + "px;border:0;position:absolute;left:-9999px";
+    f.src = "./index.html?t=" + Math.random();
+    f.onload = function(){ setTimeout(function(){ res(f); }, 700); };
+    document.body.appendChild(f);
+  });
+}
+
+function visibleViews(d){
+  var ids = ["antrenman","ogun","gecmis","rehber","profil"], on = [];
+  ids.forEach(function(v){
+    var el = d.getElementById("v-" + v);
+    if(d.defaultView.getComputedStyle(el).display !== "none") on.push(v);
+  });
+  return on;
+}
+
+function hiddenBoxes(d, active){
+  var ids = ["antrenman","ogun","gecmis","rehber","profil"], bad = [];
+  ids.forEach(function(v){
+    if(v === active) return;
+    var r = d.getElementById("v-" + v).getBoundingClientRect();
+    if(r.width !== 0 || r.height !== 0) bad.push(v + " " + Math.round(r.width) + "x" + Math.round(r.height));
+  });
+  return bad;
+}
+
+function run(){
+  localStorage.clear();
+
+  /* ---- 1. varsayılan telefon ---- */
+  return frame(390, 844).then(function(f){
+    var d = f.contentDocument, w = f.contentWindow;
+
+    ok("5 sekme var", d.querySelectorAll('[role="tab"]').length === 5);
+    ok("1. seviyede 2 gün", d.querySelectorAll('#days [data-day]').length === 2);
+    ok("6 hareket sayfası", d.querySelectorAll(".page.dyn").length === 6);
+
+    var pager = d.getElementById("pager");
+    var page = d.querySelector(".page.dyn");
+    ok("sayfa tam genişlikte",
+       Math.abs(page.getBoundingClientRect().width - pager.clientWidth) < 1,
+       page.getBoundingClientRect().width + " vs " + pager.clientWidth);
+
+    /* her sekmede tek görünüm — id özgüllüğü kaynaklı bindirme nüksetmesin */
+    var tabs = ["antrenman","ogun","gecmis","rehber","profil"];
+    tabs.forEach(function(t){
+      d.getElementById("tab-" + t).click();
+      var on = visibleViews(d);
+      ok(t + ": tek görünüm açık", on.length === 1 && on[0] === t, "açık olanlar: " + on.join(","));
+      var bad = hiddenBoxes(d, t);
+      ok(t + ": gizli görünümler 0x0", bad.length === 0, bad.join(", "));
+    });
+
+    d.getElementById("tab-antrenman").click();
+    var pg = d.getElementById("ex-0");
+    ok("hareket sayfası taşmıyor (390x844)",
+       pg.scrollHeight <= pg.clientHeight + 1,
+       pg.scrollHeight + " > " + pg.clientHeight);
+
+    /* ---- seviye değişimi ---- */
+    d.getElementById("tab-profil").click();
+    d.querySelector('[data-level="3"]').click();
+    ok("3. seviyede 3 gün", d.querySelectorAll('#days [data-day]').length === 3,
+       d.querySelectorAll('#days [data-day]').length + " gün");
+    ok("3. seviye A günü 5 hareket", d.querySelectorAll(".page.dyn").length === 5,
+       d.querySelectorAll(".page.dyn").length + " sayfa");
+    ok("seviye kaydedildi", JSON.parse(localStorage.getItem("zirh.v1")).profile.erkek.level === 3);
+
+    /* gün değişimi */
+    d.querySelectorAll('#days [data-day]')[2].click();
+    ok("bacak gününe geçildi", d.getElementById("h-title").textContent === "Bacak",
+       d.getElementById("h-title").textContent);
+
+    /* ---- set işaretleme ve kalıcılık ---- */
+    d.getElementById("tab-antrenman").click();
+    d.querySelector('#ex-0 .setbtn').click();
+    var saved = JSON.parse(localStorage.getItem("zirh.v1"));
+    ok("set kaydedildi", !!(saved.active.erkek["3:B"] && saved.active.erkek["3:B"].sets["0-0"]),
+       JSON.stringify(saved.active.erkek));
+    ok("dinlenme sayacı açıldı", d.getElementById("timer").classList.contains("on"));
+
+    /* ---- ağırlık artırma ---- */
+    d.querySelector('#ex-0 [data-step="0"][data-dir="1"]').click();
+    ok("ağırlık adımı 5 kg (back squat)",
+       d.querySelector('#ex-0 [data-kg="0"]').value === "5",
+       d.querySelector('#ex-0 [data-kg="0"]').value);
+
+    f.remove();
+    return frame(320, 568);
+  }).then(function(f){
+    /* ---- 2. küçük ekran ---- */
+    var d = f.contentDocument;
+    var pg = d.getElementById("ex-0");
+    ok("hareket sayfası taşmıyor (320x568)",
+       pg.scrollHeight <= pg.clientHeight + 1,
+       pg.scrollHeight + " > " + pg.clientHeight);
+
+    /* seviye 3 hâlâ kayıtlı olmalı */
+    ok("seviye yeniden yüklemede korundu",
+       d.querySelectorAll('#days [data-day]').length === 3);
+
+    /* yarım kalan seans hatırlanıyor */
+    ok("yarım seans işaretli kaldı",
+       d.querySelector('#ex-0 .setbtn').getAttribute("aria-pressed") === "true");
+
+    f.remove();
+
+    /* ---- 3. profil dolu → öğün planı ---- */
+    var s = JSON.parse(localStorage.getItem("zirh.v1"));
+    s.profile.erkek.h = "178";
+    s.profile.erkek.w = "80";
+    s.profile.erkek.age = "33";
+    s.profile.erkek.goal = "kas";
+    localStorage.setItem("zirh.v1", JSON.stringify(s));
+
+    return frame(390, 844);
+  }).then(function(f){
+    var d = f.contentDocument;
+
+    d.getElementById("tab-profil").click();
+    var kcal = d.getElementById("t-kcal").textContent;
+    ok("kalori hedefi hesaplandı", /\d/.test(kcal), kcal);
+    ok("protein hedefi hesaplandı", d.getElementById("t-pro").textContent === "144 g",
+       d.getElementById("t-pro").textContent);
+    ok("VKİ hesaplandı", d.getElementById("t-bmi").textContent === "25,2",
+       d.getElementById("t-bmi").textContent);
+
+    d.getElementById("tab-ogun").click();
+    ok("öğün planı kuruldu", d.querySelectorAll("#m-plan .meal").length >= 4,
+       d.querySelectorAll("#m-plan .meal").length + " öğün");
+    ok("plan göstergeleri var", d.querySelectorAll("#m-plan .gauge").length === 4);
+
+    var planKcal = 0;
+    d.querySelectorAll("#m-plan .mealnums b").forEach(function(b){ planKcal += +b.textContent; });
+    var goal = +kcal.replace(/\D/g, "");
+    ok("plan kalorisi hedefin %20'si içinde",
+       Math.abs(planKcal - goal) / goal < 0.20,
+       planKcal + " vs " + goal);
+
+    d.getElementById("m-shuffle").click();
+    ok("başka gün önerisi çalıştı", d.querySelectorAll("#m-plan .meal").length >= 4);
+
+    /* kişi seçimi profilde ve kayıtları ayırıyor */
+    d.getElementById("tab-profil").click();
+    ok("kişi seçimi profilde", !!d.querySelector("#v-profil #people"));
+    ok("kişi seçimi başlıkta değil", !d.querySelector(".top #people"));
+
+    d.getElementById("p-kadin").click();
+    ok("kadına geçildi", d.getElementById("pr-who").textContent === "Kadın",
+       d.getElementById("pr-who").textContent);
+    ok("kadının ölçüleri boş", d.getElementById("pf-w").value === "",
+       d.getElementById("pf-w").value);
+    ok("kadın 1. seviyeden başlıyor",
+       d.querySelector('[data-level="1"]').getAttribute("aria-pressed") === "true");
+
+    d.getElementById("p-erkek").click();
+    ok("erkeğe dönünce ölçüler geldi", d.getElementById("pf-w").value === "80",
+       d.getElementById("pf-w").value);
+
+    d.getElementById("tab-ogun").click();
+    ok("öğün süzgeci çalışıyor", (function(){
+      d.querySelector('[data-filter="ana"]').click();
+      var n = d.querySelectorAll("#m-list .meal").length;
+      return n > 0 && n < 28;
+    })());
+
+    f.remove();
+    return frame(1280, 900);
+  }).then(function(f){
+    /* ---- 4. masaüstü ---- */
+    var d = f.contentDocument;
+    var btns = d.querySelectorAll(".tabs button");
+    var first = btns[0].getBoundingClientRect();
+    var last = btns[4].getBoundingClientRect();
+    var content = d.querySelector("#v-antrenman").getBoundingClientRect();
+
+    ok("alt bar geniş ekranda ortada, gerilmiyor",
+       last.right - first.left <= 580,
+       Math.round(last.right - first.left) + "px");
+    ok("alt bar içerik sütunuyla hizalı",
+       Math.abs(first.left - content.left) < 30,
+       Math.round(first.left) + " vs " + Math.round(content.left));
+
+    f.remove();
+    document.getElementById("out").textContent =
+      lines.join("\n") + "\n\nSONUÇ  " + pass + " geçti, " + fail + " kaldı";
+  }).catch(function(e){
+    document.getElementById("out").textContent =
+      lines.join("\n") + "\n\nHATA: " + (e && e.stack ? e.stack : e);
+  });
+}
+run();
+</script>
+</body></html>

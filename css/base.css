@@ -1,0 +1,150 @@
+/* ============================================================
+   ZIRH — renk dili, tipografi, ortak parçalar.
+
+   Renkler halter plakalarından geliyor:
+   20 kg mavi · 25 kg kırmızı · 15 kg sarı · 10 kg yeşil
+   Beşinci güne plaka rengi yetmediği için mor eklendi.
+   ============================================================ */
+
+:root{
+  --p20:#2F6BE0;
+  --p25:#E0344A;
+  --p15:#F2C230;
+  --p10:#1FA971;
+  --p05:#7A5CE0;
+
+  --wrap:560px;
+  --r:16px;
+  --r-sm:11px;
+  --nav-h:60px;      /* buton yüksekliği */
+  --nav-total:61px;  /* bar + üst kenarlık, JS ölçer */
+  --tap:48px;
+
+  --display:'Big Shoulders Display','Archivo Narrow',system-ui,sans-serif;
+  --body:'Archivo',system-ui,-apple-system,'Segoe UI',sans-serif;
+
+  --ease:cubic-bezier(.2,.8,.3,1);
+}
+
+html[data-theme="dark"]{
+  --bg:#0D0F12;
+  --surface:#15181D;
+  --surface-2:#1C2028;
+  --sunken:#0A0C0F;
+  --line:#282D36;
+  --line-soft:#1F242B;
+  --rail-off:#2E343E;
+  --text:#F2F4F7;
+  --text-2:#98A0AC;
+  --text-3:#666D79;
+  --on-accent:#fff;
+  --shadow:0 1px 0 rgba(255,255,255,.03), 0 14px 30px -20px rgba(0,0,0,.9);
+  --warn-bg:#2A1418;
+}
+html[data-theme="light"]{
+  --bg:#EFF0F3;
+  --surface:#FFFFFF;
+  --surface-2:#F5F6F9;
+  --sunken:#E7E9ED;
+  --line:#DDE0E6;
+  --line-soft:#E9EBEF;
+  --rail-off:#D2D6DD;
+  --text:#12141A;
+  --text-2:#5C636E;
+  --text-3:#8B929C;
+  --on-accent:#fff;
+  --shadow:0 1px 0 rgba(20,22,26,.04), 0 10px 26px -18px rgba(20,22,26,.5);
+  --warn-bg:#FDEFF1;
+}
+
+/* Günün rengi. Program kaç günlükse o kadarı kullanılır. */
+html[data-day="0"]{ --accent:var(--p20); --accent-soft:rgba(47,107,224,.14) }
+html[data-day="1"]{ --accent:var(--p25); --accent-soft:rgba(224,52,74,.14) }
+html[data-day="2"]{ --accent:var(--p15); --accent-soft:rgba(242,194,48,.16) }
+html[data-day="3"]{ --accent:var(--p10); --accent-soft:rgba(31,169,113,.15) }
+html[data-day="4"]{ --accent:var(--p05); --accent-soft:rgba(122,92,224,.16) }
+/* Sarı, açık zeminde yazı olarak okunmuyor; o gün için koyultuluyor. */
+html[data-theme="light"][data-day="2"]{ --accent:#9A7414 }
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+html{-webkit-text-size-adjust:100%;overscroll-behavior:none}
+
+/* Uygulama hissi: gecikmesiz dokunuş, kaymayan arayüz. */
+button,.setbtn,.tabs,.top,.days,.goals,.stat,.badge,.railcount,.tdigits,.meta,.chip,.lvl{
+  -webkit-user-select:none;user-select:none;
+}
+button,a,input,summary,[role="tab"]{touch-action:manipulation;-webkit-touch-callout:none}
+input,textarea,.exbody,.card p,.hero .desc,.rule small,.note{-webkit-user-select:text;user-select:text}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--body);
+  font-size:16px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  overscroll-behavior:none;
+  /* Uygulama kabuğu: başlık ve alt bar sabit, ortadaki bölge kayar. */
+  display:flex;flex-direction:column;
+  height:100vh;height:100dvh;overflow:hidden;
+}
+button,input{font:inherit;color:inherit}
+button{-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- ortak parçalar ---------- */
+
+h2.sec{
+  font-family:var(--display);font-weight:700;text-transform:uppercase;
+  font-size:15px;letter-spacing:.09em;color:var(--text-3);
+  margin:28px 0 10px;display:flex;align-items:center;gap:11px;
+}
+h2.sec::after{content:"";flex:1;height:1px;background:var(--line)}
+
+.card{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:16px;margin-bottom:11px;box-shadow:var(--shadow);
+}
+.card h3{margin:0 0 9px;font-size:16px;font-weight:700}
+.card p{margin:0 0 10px;font-size:14px;color:var(--text-2)}
+.card p:last-child{margin-bottom:0}
+.card p b,.card p strong{color:var(--text)}
+.note{font-size:12.5px;color:var(--text-3);line-height:1.5}
+
+.btn{
+  width:100%;padding:15px;border-radius:13px;border:0;background:var(--accent);color:var(--on-accent);
+  font-weight:700;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:opacity .16s var(--ease),transform .12s var(--ease);
+}
+.btn:active{transform:scale(.99)}
+.btn:disabled{opacity:.42;cursor:default}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--text)}
+.btn.green{background:var(--p10)}
+.btn.danger{background:transparent;border:1px solid var(--line);color:var(--p25);font-size:13.5px;padding:12px}
+.btn+.btn{margin-top:9px}
+
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{
+  text-align:left;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--text-3);font-weight:700;padding:0 0 9px;
+}
+.tbl td{padding:9px 0;border-top:1px solid var(--line-soft);color:var(--text-2)}
+.tbl td:first-child{color:var(--text)}
+.tbl td:last-child{text-align:right;font-weight:700;font-variant-numeric:tabular-nums;color:var(--text)}
+
+.empty{text-align:center;padding:44px 20px;color:var(--text-3)}
+.empty svg{width:38px;height:38px;stroke:var(--text-3);fill:none;stroke-width:1.4;margin-bottom:12px}
+.empty p{margin:0;font-size:14px}
+
+footer{
+  margin-top:30px;padding:18px 0 4px;border-top:1px solid var(--line);
+  font-size:12.5px;color:var(--text-3);line-height:1.55;
+}
+footer p{margin:0 0 9px}
+footer p:last-child{margin:0}
+
+@media (prefers-reduced-motion:reduce){
+  *{transition-duration:.01ms!important;animation-duration:.01ms!important}
+}
