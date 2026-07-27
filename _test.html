@@ -94,6 +94,23 @@ function run(){
        JSON.stringify(saved.active.erkek));
     ok("dinlenme sayacı açıldı", d.getElementById("timer").classList.contains("on"));
 
+    /* ---- teknik paneli ve video ---- */
+    d.querySelector('#ex-0 [data-tech]').click();
+    ok("teknik paneli açıldı", d.getElementById("sheet").classList.contains("on"));
+    ok("panelde teknik adımları var", d.querySelectorAll("#sheet-body ol li").length >= 3);
+    ok("panelde sık hata var", !!d.querySelector("#sheet-body .warnbox"));
+    var slot = d.querySelector("#sheet-body .videoslot");
+    ok("hareketin videosu bağlı", !!slot && /^[A-Za-z0-9_-]{11}$/.test(slot.dataset.vid),
+       slot ? slot.dataset.vid : "yok");
+    /* Video ancak düğmeye basılınca yüklenir. Gerçekten gömmeyi burada
+       denemiyoruz: headless tarayıcı YouTube isteğini bekleyip kilitleniyor.
+       Kimliklerin geçerliliği ayrıca oembed ile doğrulanıyor. */
+    ok("video isteğe bağlı yükleniyor", !d.querySelector("#sheet-body iframe"));
+    ok("video düğmesi hazır", !!d.querySelector("#sheet-body .vbtn"));
+    /* Panel burada kapatılmıyor: kapatma history.back() çağırıyor ve iframe
+       içinde bu üst pencereyi de geri götürüp test sayfasını düşürüyor.
+       Sonraki denetimler doğrudan DOM üzerinden, panelden bağımsız. */
+
     /* ---- ağırlık artırma ---- */
     d.querySelector('#ex-0 [data-step="0"][data-dir="1"]').click();
     ok("ağırlık adımı 5 kg (back squat)",
