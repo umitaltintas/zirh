@@ -7,7 +7,8 @@
 /* Tema boyamadan önce kurulsun — açılışta beyaz/siyah sıçrama olmasın. */
 (function(){
   try{
-    var s = JSON.parse(localStorage.getItem("fit216.v1") || "{}");
+    var raw = localStorage.getItem("zirh.v1") || localStorage.getItem("fit216.v1") || "{}";
+    var s = JSON.parse(raw);
     var t = s.theme || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
     document.documentElement.dataset.theme = t;
     document.documentElement.dataset.standalone =
@@ -15,21 +16,21 @@
   }catch(e){}
 })();
 </script>
-<title>Fit216 · Antrenman</title>
-<meta name="description" content="İki günlük başlangıç antrenman programı. Kadın ve erkek için ayrı başlangıç ağırlıkları.">
+<title>ZIRH · Antrenman</title>
+<meta name="description" content="Kas, vücudun zırhı. İki günlük başlangıç antrenman programı; kadın ve erkek için ayrı başlangıç ağırlıkları.">
 <meta name="theme-color" content="#0D0F12">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Fit216">
+<meta name="apple-mobile-web-app-title" content="ZIRH">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;600;700;800&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   Fit216 — plaka renk dili
+   ZIRH — plaka renk dili
    20 kg mavi · 25 kg kırmızı · 15 kg sarı · 10 kg yeşil
    ============================================================ */
 :root{
@@ -129,10 +130,13 @@ main>.view{max-width:var(--wrap);margin:0 auto;padding-left:16px;padding-right:1
 }
 .toprow{display:flex;align-items:center;gap:10px;height:54px}
 .brand{
-  font-family:var(--display);font-weight:800;font-size:25px;letter-spacing:.01em;
+  display:flex;align-items:center;gap:8px;
+  font-family:var(--display);font-weight:800;font-size:25px;letter-spacing:.03em;
   text-transform:uppercase;line-height:1;margin-right:auto;white-space:nowrap;
 }
-.brand span{color:var(--accent)}
+.brand .mark{width:17px;height:20px;flex:none}
+.brand .mark .sh{fill:none;stroke:var(--accent);stroke-width:2.4}
+.brand .mark .bd{stroke:currentColor;stroke-width:2.6}
 
 .people{display:flex;background:var(--sunken);border-radius:9px;padding:3px;gap:2px}
 .people button{
@@ -662,7 +666,11 @@ footer p:last-child{margin:0}
 <header class="top">
   <div class="wrap">
     <div class="toprow">
-      <div class="brand">Fit<span>216</span></div>
+      <div class="brand">
+        <svg class="mark" viewBox="0 0 22 26" aria-hidden="true">
+          <path class="sh" d="M2.2 2.2h17.6v10.6c0 6.6-4.6 10.4-8.8 11.4-4.2-1-8.8-4.8-8.8-11.4z"/>
+          <path class="bd" d="M2.2 12.6h17.6"/>
+        </svg>ZIRH</div>
       <div class="people" role="group" aria-label="Program kimin için">
         <button id="p-erkek" aria-pressed="true">Erkek</button>
         <button id="p-kadin" aria-pressed="false">Kadın</button>
@@ -1106,12 +1114,18 @@ function bodyNote(h, w){
 /* ==========================================================
    Kalıcı kayıt
    ========================================================== */
-const KEY = "fit216.v1";
+const KEY = "zirh.v1";
+const OLD_KEY = "fit216.v1";  /* uygulama Fit216 adıyla yayınlanmıştı */
 let db = {person:"erkek", theme:null, active:{}, history:[]};
 
 function load(){
   try{
-    const raw = localStorage.getItem(KEY);
+    /* Ad değişti; eski anahtardaki kayıtlar devralınır, hiçbir seans kaybolmaz. */
+    let raw = localStorage.getItem(KEY);
+    if(!raw){
+      const old = localStorage.getItem(OLD_KEY);
+      if(old){ raw = old; localStorage.setItem(KEY, old); }
+    }
     if(raw) db = Object.assign(db, JSON.parse(raw));
   }catch(e){}
   if(!db.active) db.active = {};
@@ -1886,8 +1900,28 @@ if(document.fonts && document.fonts.ready){
 }
 window.addEventListener("load", sizeHead);
 
+/* Yeni sürüm çıktığında uygulama kendini tazelesin — ama seansın ortasında değil. */
 if("serviceWorker" in navigator){
-  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").then(reg => {
+      const check = () => { try{ reg.update(); }catch(e){} };
+      document.addEventListener("visibilitychange", () => {
+        if(document.visibilityState === "visible") check();
+      });
+      setInterval(check, 30 * 60 * 1000);
+    }).catch(() => {});
+
+    let reloading = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if(reloading) return;
+      if(Object.keys(session(false).sets).length){
+        toast("Yeni sürüm hazır, seanstan sonra geçilecek");
+        return;
+      }
+      reloading = true;
+      location.reload();
+    });
+  });
 }
 </script>
 </body>

@@ -1,4 +1,6 @@
-# Fit216
+# ZIRH
+
+> Kas, vücudun zırhı. Her seans bir plaka daha.
 
 İki günlük başlangıç antrenman programı. Tek dosyalık, kurulum gerektirmeyen bir web uygulaması.
 

@@ -1,7 +1,7 @@
 {
-  "name": "Fit216 · Antrenman",
-  "short_name": "Fit216",
-  "description": "İki günlük başlangıç antrenman programı. Kadın ve erkek için ayrı başlangıç ağırlıkları.",
+  "name": "ZIRH · Antrenman",
+  "short_name": "ZIRH",
+  "description": "Kas, vücudun zırhı. İki günlük başlangıç antrenman programı.",
   "lang": "tr",
   "dir": "ltr",
   "start_url": "./",

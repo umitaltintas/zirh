@@ -1,5 +1,5 @@
-/* Fit216 — salonda çekim olmasa da açılsın diye basit bir önbellek. */
-const CACHE = "fit216-v2";
+/* ZIRH — salonda çekim olmasa da açılsın diye basit bir önbellek. */
+const CACHE = "zirh-v3";
 const SHELL = [
   "./",
   "./index.html",
