@@ -1,7 +1,7 @@
 {
   "name": "Fit216 · Antrenman",
   "short_name": "Fit216",
-  "description": "Ümit ve Kadriye için iki günlük başlangıç antrenman programı.",
+  "description": "İki günlük başlangıç antrenman programı. Kadın ve erkek için ayrı başlangıç ağırlıkları.",
   "lang": "tr",
   "dir": "ltr",
   "start_url": "./",
@@ -11,8 +11,23 @@
   "background_color": "#0D0F12",
   "theme_color": "#0D0F12",
   "icons": [
-    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }

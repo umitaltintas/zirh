@@ -1,6 +1,8 @@
 # Fit216
 
-Ümit ve Kadriye için iki günlük başlangıç antrenman programı. Tek dosyalık, kurulum gerektirmeyen bir web uygulaması.
+İki günlük başlangıç antrenman programı. Tek dosyalık, kurulum gerektirmeyen bir web uygulaması.
+
+Program kadın ve erkek için ayrı başlangıç ağırlıkları önerir; hareketler ve set sayıları aynıdır. Üstteki seçiciden geçiş yapılır, kayıtlar ayrı tutulur.
 
 ## Ne yapar
 
@@ -16,7 +18,7 @@ Tarayıcı menüsünden **Ana ekrana ekle** dendiğinde uygulama gibi açılır 
 
 ## Veri
 
-Setler, ağırlıklar, seans geçmişi ve profil bilgileri (boy, kilo) yalnızca tarayıcının `localStorage` alanında, yani o cihazda tutulur. Hiçbir yere gönderilmez, sunucu yoktur. Ümit ve Kadriye ayrı kaydedilir.
+Setler, ağırlıklar, seans geçmişi ve profil bilgileri (boy, kilo) yalnızca tarayıcının `localStorage` alanında, yani o cihazda tutulur. Hiçbir yere gönderilmez, sunucu yoktur.
 
 ## Dosyalar
 

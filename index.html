@@ -16,7 +16,7 @@
 })();
 </script>
 <title>Fit216 · Antrenman</title>
-<meta name="description" content="Ümit ve Kadriye için iki günlük başlangıç antrenman programı.">
+<meta name="description" content="İki günlük başlangıç antrenman programı. Kadın ve erkek için ayrı başlangıç ağırlıkları.">
 <meta name="theme-color" content="#0D0F12">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="./icon-192.png">
@@ -174,8 +174,11 @@ html[data-theme="light"] .iconbtn .moon{display:none}
    Antrenman: yatay sayfalayıcı — bir ekranda bir hareket.
    Aktif seansta dikey kaydırma yok; setler başparmak bölgesinde.
    ============================================================ */
-/* Antrenman sekmesi kendi içinde kaymaz; sayfalar tam ekrandır. */
-#v-antrenman{padding-top:0;height:100%;display:flex;flex-direction:column}
+/* Antrenman sekmesi kendi içinde kaymaz; sayfalar tam ekrandır.
+   display yalnızca .on iken verilmeli — yoksa id özgüllüğü .view{display:none}
+   kuralını ezip görünümü diğer sekmelerin üstünde bırakıyor. */
+#v-antrenman{padding-top:0}
+#v-antrenman.on{height:100%;display:flex;flex-direction:column}
 body[data-tab="antrenman"] main{overflow-y:hidden}
 
 /* Sayfalayıcı kalan alanı doldurur ve kenardan kenara uzanır. */
@@ -660,9 +663,9 @@ footer p:last-child{margin:0}
   <div class="wrap">
     <div class="toprow">
       <div class="brand">Fit<span>216</span></div>
-      <div class="people" role="group" aria-label="Kim antrenman yapıyor">
-        <button id="p-umit" aria-pressed="true">Ümit</button>
-        <button id="p-kadriye" aria-pressed="false">Kadriye</button>
+      <div class="people" role="group" aria-label="Program kimin için">
+        <button id="p-erkek" aria-pressed="true">Erkek</button>
+        <button id="p-kadin" aria-pressed="false">Kadın</button>
       </div>
       <button class="iconbtn" id="theme" aria-label="Açık ve koyu tema arasında geçiş yap">
         <svg class="moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
@@ -777,7 +780,7 @@ footer p:last-child{margin:0}
 
   <h2 class="sec">Beslenme</h2>
   <div class="card">
-    <h3 id="n-name">Ümit</h3>
+    <h3 id="n-name">Erkek</h3>
     <div class="profrow">
       <label>Boy
         <span class="pf"><input id="pf-h" type="text" inputmode="numeric" placeholder="—" aria-label="Boy, santimetre"><i>cm</i></span>
@@ -797,7 +800,7 @@ footer p:last-child{margin:0}
   </div>
 
   <div class="card">
-    <p>Ağırlık antrenmanı kadınlarda kas hacmini erkeklerdeki gibi büyütmez; "sıkılaşma" denen şey zaten kas kazanmanın kendisi. İkiniz aynı programı, aynı hareketleri yapıyorsunuz; tek fark başlangıç ağırlıkları.</p>
+    <p>Ağırlık antrenmanı kadınlarda kas hacmini erkeklerdeki gibi büyütmez; "sıkılaşma" denen şey zaten kas kazanmanın kendisi. İkiniz de aynı programı, aynı hareketleri yapıyorsunuz; tek fark başlangıç ağırlıkları.</p>
   </div>
 
   <h2 class="sec">Kreatin</h2>
@@ -811,7 +814,7 @@ footer p:last-child{margin:0}
   <h2 class="sec">Uygulama</h2>
   <div class="card">
     <p>Telefonda tarayıcı menüsünden <b>Ana ekrana ekle</b> dersen uygulama gibi açılır ve internet olmadan da çalışır. Salonda çekim zayıfsa sorun çıkarmaz.</p>
-    <p class="note">Kayıtlar sadece bu telefonda tutulur, hiçbir yere gönderilmez. Ümit ve Kadriye ayrı kaydedilir, üstteki isimden geçiş yaparsınız.</p>
+    <p class="note">Kayıtlar sadece bu telefonda tutulur, hiçbir yere gönderilmez. Kadın ve erkek kayıtları ayrı tutulur; üstteki seçiciden geçiş yaparsınız.</p>
   </div>
 
   <footer>
@@ -821,7 +824,7 @@ footer p:last-child{margin:0}
 
 <!-- ==================== GEÇMİŞ ==================== -->
 <section class="view" id="v-gecmis" role="tabpanel" aria-labelledby="tab-gecmis">
-  <h2 class="sec" style="margin-top:0"><span id="g-who">Ümit</span> · özet</h2>
+  <h2 class="sec" style="margin-top:0"><span id="g-who">Erkek</span> · özet</h2>
   <div class="stats">
     <div class="stat"><b id="g-total">0</b><span>Toplam seans</span></div>
     <div class="stat"><b id="g-month">0</b><span>Bu ay</span></div>
@@ -899,7 +902,7 @@ const DATA = {
       {
         name: "Leg Press", alt: "Yatık bacak itiş makinesi", target: "Bacak · Kalça",
         sets: 3, reps: "10-12", rest: 120, step: 5,
-        kg: {umit:"40-60 kg", kadriye:"20-40 kg"},
+        kg: {erkek:"40-60 kg", kadin:"20-40 kg"},
         why: "Bacağın tamamını tek harekette çalıştırır. Denge gerektirmediği için ilk günden anlamlı ağırlık kaldırabilirsin.",
         cues: [
           "Ayaklar omuz genişliğinde, platformun ortasında.",
@@ -913,7 +916,7 @@ const DATA = {
       {
         name: "Machine Chest Press", alt: "Oturarak göğüs itiş makinesi", target: "Göğüs · Omuz · Triceps",
         sets: 3, reps: "10-12", rest: 90, step: 2.5,
-        kg: {umit:"20-30 kg", kadriye:"10-15 kg"},
+        kg: {erkek:"20-30 kg", kadin:"10-15 kg"},
         why: "Bench press'in öğrenmesi kolay hâli. Spotter'a ihtiyacın yok, ağırlık üstüne düşmez.",
         cues: [
           "Koltuğu, tutamaklar göğsünün ortasına gelecek şekilde ayarla.",
@@ -927,7 +930,7 @@ const DATA = {
       {
         name: "Seated Cable Row", alt: "Oturarak kabloyla karna çekiş", target: "Sırt · Arka omuz · Biceps",
         sets: 3, reps: "10-12", rest: 90, step: 2.5,
-        kg: {umit:"25-35 kg", kadriye:"15-25 kg"},
+        kg: {erkek:"25-35 kg", kadin:"15-25 kg"},
         why: "Gün boyu öne kapanan omuzların karşı ağırlığı. Duruş için programdaki en değerli hareket.",
         cues: [
           "Dizler hafif bükülü, gövde dik, sırt doğal kavisinde.",
@@ -941,7 +944,7 @@ const DATA = {
       {
         name: "Seated Leg Curl", alt: "Oturarak arka bacak makinesi", target: "Arka bacak",
         sets: 2, reps: "12-15", rest: 60, step: 2.5,
-        kg: {umit:"15-25 kg", kadriye:"10-20 kg"},
+        kg: {erkek:"15-25 kg", kadin:"10-20 kg"},
         why: "Leg press ön bacağı çalıştırır, arkası boş kalır. Bu hareket dengeyi kurar, diz sağlığına da iyi gelir.",
         cues: [
           "Diz eklemin makinenin dönme ekseniyle aynı hizada olsun.",
@@ -954,7 +957,7 @@ const DATA = {
       {
         name: "Face Pull", alt: "Halatla yüze çekiş", target: "Arka omuz · Üst sırt",
         sets: 2, reps: "15", rest: 60, step: 2.5,
-        kg: {umit:"10-15 kg", kadriye:"5-10 kg"},
+        kg: {erkek:"10-15 kg", kadin:"5-10 kg"},
         why: "Duruş için wall angel'dan daha etkili. Öne dönen omuzları geri çeken kasları doğrudan güçlendirir.",
         cues: [
           "Halatı göz hizasına ayarla.",
@@ -968,7 +971,7 @@ const DATA = {
       {
         name: "Plank", alt: "Dirsek üstü köprü", target: "Karın · Gövde",
         sets: 3, reps: "20-40 sn", rest: 45, step: 0, bw: true,
-        kg: {umit:"vücut ağırlığı", kadriye:"vücut ağırlığı"},
+        kg: {erkek:"vücut ağırlığı", kadin:"vücut ağırlığı"},
         why: "Karnı 'incelten' bir hareket değil — gövdeni sabit tutmayı öğretir, bu da diğer hareketlerin formunu düzeltir.",
         cues: [
           "Dirsekler omuzların tam altında.",
@@ -991,7 +994,7 @@ const DATA = {
       {
         name: "Hip Thrust", alt: "Bench destekli kalça kaldırış", target: "Kalça · Arka bacak",
         sets: 3, reps: "10-12", rest: 120, step: 5,
-        kg: {umit:"boş bar, 20 kg", kadriye:"10-20 kg"},
+        kg: {erkek:"boş bar, 20 kg", kadin:"10-20 kg"},
         why: "Kalça kaslarının en doğrudan çalıştığı hareket. Güçlü kalça, beli ve dizi koruyan yapının temeli.",
         cues: [
           "Kürek kemiklerin bench'in kenarına gelsin, ayaklar kalça genişliğinde.",
@@ -1005,7 +1008,7 @@ const DATA = {
       {
         name: "Lat Pulldown", alt: "Yukarıdan aşağı çekiş", target: "Sırt · Kanat · Biceps",
         sets: 3, reps: "10-12", rest: 90, step: 2.5,
-        kg: {umit:"25-35 kg", kadriye:"15-25 kg"},
+        kg: {erkek:"25-35 kg", kadin:"15-25 kg"},
         why: "Barfiksin ayarlanabilir hâli. Sırtın genişliğini ve omuz sağlığını birlikte kurar.",
         cues: [
           "Eller omuz genişliğinden biraz açık, diz pedi bacaklarına tam temas etsin.",
@@ -1019,7 +1022,7 @@ const DATA = {
       {
         name: "Machine Shoulder Press", alt: "Oturarak omuz itiş makinesi", target: "Omuz · Triceps",
         sets: 3, reps: "10-12", rest: 90, step: 2.5,
-        kg: {umit:"15-25 kg", kadriye:"7-12 kg"},
+        kg: {erkek:"15-25 kg", kadin:"7-12 kg"},
         why: "Omuzun ön ve yan başını çalıştırır. Üst vücuda genişlik veren ve baş üstü işleri kolaylaştıran hareket.",
         cues: [
           "Koltuğu, tutamaklar omuz hizasına gelecek şekilde ayarla.",
@@ -1033,7 +1036,7 @@ const DATA = {
       {
         name: "Leg Press · yüksek ayak", alt: "Ayaklar platformda yukarıda", target: "Kalça · Arka bacak",
         sets: 3, reps: "12-15", rest: 90, step: 5,
-        kg: {umit:"A gününün %70'i", kadriye:"A gününün %70'i"},
+        kg: {erkek:"A gününün %70'i", kadin:"A gününün %70'i"},
         why: "Ayakları yukarı almak yükü ön bacaktan kalça ve arka bacağa kaydırır. Aynı makine, farklı kas.",
         cues: [
           "Ayakları platformun üst yarısına yerleştir.",
@@ -1047,7 +1050,7 @@ const DATA = {
       {
         name: "Wall Angel", alt: "Duvarda kol kaydırma", target: "Omuz hareketliliği · Üst sırt",
         sets: 2, reps: "10", rest: 45, step: 0, bw: true,
-        kg: {umit:"vücut ağırlığı", kadriye:"vücut ağırlığı"},
+        kg: {erkek:"vücut ağırlığı", kadin:"vücut ağırlığı"},
         why: "Kas büyütmez, omuz hareket açıklığını açar. Masa başında geçen gün için iyi bir karşı hamle.",
         cues: [
           "Sırtın duvarda, topukların duvardan 10-15 cm ileride.",
@@ -1061,7 +1064,7 @@ const DATA = {
       {
         name: "Yan Plank", alt: "Side plank, her iki taraf", target: "Yan karın · Kalça yanı",
         sets: 3, reps: "20-30 sn / taraf", rest: 45, step: 0, bw: true,
-        kg: {umit:"vücut ağırlığı", kadriye:"vücut ağırlığı"},
+        kg: {erkek:"vücut ağırlığı", kadin:"vücut ağırlığı"},
         why: "Gövdenin yana çökmesini engelleyen kaslar. Tek bacakla duruş ve yürüyüş kalitesini etkiler.",
         cues: [
           "Dirsek omzun tam altında.",
@@ -1077,8 +1080,8 @@ const DATA = {
 };
 
 const PEOPLE = {
-  umit:    {label:"Ümit"},
-  kadriye: {label:"Kadriye"}
+  erkek: {label:"Erkek"},
+  kadin: {label:"Kadın"}
 };
 
 /* Boy ve kilo koda yazılmaz; uygulamada girilir ve sadece bu telefonda saklanır. */
@@ -1104,7 +1107,7 @@ function bodyNote(h, w){
    Kalıcı kayıt
    ========================================================== */
 const KEY = "fit216.v1";
-let db = {person:"umit", theme:null, active:{}, history:[]};
+let db = {person:"erkek", theme:null, active:{}, history:[]};
 
 function load(){
   try{
@@ -1113,8 +1116,22 @@ function load(){
   }catch(e){}
   if(!db.active) db.active = {};
   if(!Array.isArray(db.history)) db.history = [];
-  if(!PEOPLE[db.person]) db.person = "umit";
+  migrate();
+  if(!PEOPLE[db.person]) db.person = "erkek";
 }
+/* Kişi anahtarları isimden cinsiyete taşındı; eski kayıtlar kaybolmasın. */
+function migrate(){
+  const map = {umit:"erkek", kadriye:"kadin"};
+  ["active","profile"].forEach(bag => {
+    if(!db[bag]) return;
+    Object.keys(map).forEach(old => {
+      if(db[bag][old]){ db[bag][map[old]] = db[bag][old]; delete db[bag][old]; }
+    });
+  });
+  db.history.forEach(rec => { if(map[rec.person]) rec.person = map[rec.person]; });
+  if(map[db.person]) db.person = map[db.person];
+}
+
 function save(){
   try{ localStorage.setItem(KEY, JSON.stringify(db)); }catch(e){}
 }
@@ -1124,7 +1141,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":
 const dayStr = d => d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 const num = n => String(n).replace(".", ",");
 
-let person = "umit", day = "A";
+let person = "erkek", day = "A";
 
 /* aktif seans: db.active[person][day] = {date, sets:{}, kg:{}, startedAt} */
 function session(create){
@@ -1591,12 +1608,12 @@ function pick(aId, bId, fn){
   b.onclick = () => set(b, a, 1);
   return { sync(v){ (v ? b : a).setAttribute("aria-pressed","true"); (v ? a : b).setAttribute("aria-pressed","false"); } };
 }
-const personSeg = pick("p-umit","p-kadriye", i => {
-  person = i ? "kadriye" : "umit";
+const personSeg = pick("p-erkek","p-kadin", i => {
+  person = i ? "kadin" : "erkek";
   db.person = person; save();
   hideTimer();
   render(); goPage(0, true); renderPerson(); renderHistory();
-  toast(PEOPLE[person].label + "'e geçildi");
+  toast(PEOPLE[person].label + " programına geçildi");
 });
 const daySeg = pick("d-A","d-B", i => {
   day = i ? "B" : "A";
@@ -1749,7 +1766,7 @@ function renderHistory(){
 
   const wipe = $("wipe");
   if(wipe) wipe.onclick = () => {
-    if(!confirm(PEOPLE[person].label + " için tüm seans kayıtları silinsin mi? Bu geri alınamaz.")) return;
+    if(!confirm(PEOPLE[person].label + " programındaki tüm seans kayıtları silinsin mi? Bu geri alınamaz.")) return;
     db.history = db.history.filter(h => h.person !== person);
     save(); renderHistory(); render();
     toast("Kayıtlar silindi");
@@ -1829,7 +1846,7 @@ function toast(msg){
 load();
 applyTheme();
 person = db.person;
-personSeg.sync(person === "kadriye" ? 1 : 0);
+personSeg.sync(person === "kadin" ? 1 : 0);
 sweepStale();
 
 /* Yarım kalan seans varsa onu aç; yoksa geçen seansın tersi günü öner. */
