@@ -154,6 +154,14 @@ export function refresh(){
     if(pg) pg.classList.toggle("done", n === e.sets);
   });
 
+  /* Rayın sonundaki bitiş segmenti: seansı kaydetmek için bütün
+     hareketleri kaydırarak geçmek gerekmesin. */
+  rail.push(
+    '<button class="railgroup railend" data-jump="end" aria-label="Seansı bitir">' +
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg>' +
+    '</button>'
+  );
+
   $("rail").innerHTML = rail.join("") + '<span class="railcount"><b>' + done + '</b>/' + total + '</span>';
   markRail();
 
@@ -183,7 +191,13 @@ export function goPage(i, instant){
   i = Math.max(0, Math.min(pageCount() - 1, i));
   pager.scrollTo({ left: i * pager.clientWidth, behavior: instant ? "auto" : "smooth" });
   pageIx = i;
+  markPage();
   markRail();
+}
+
+/* Başlıktaki geri düğmesi buna bakıyor. */
+function markPage(){
+  document.body.dataset.page = pageIx > 0 ? "ex" : "start";
 }
 
 export const atPage = () => pageIx;
@@ -264,6 +278,25 @@ function finishSession(){
   setTimeout(() => { $("veil").classList.remove("on"); go("gecmis"); }, 1900);
 }
 
+/* Yanlışlıkla başlatılan ya da yarıda bırakılacak seansı temizler.
+   Geçmişe hiçbir şey yazmaz — kaydedilecek bir seans değil zaten. */
+function discardSession(){
+  const s = cur();
+  if(!Object.keys(s.sets).length && !Object.keys(s.kg).length){
+    goPage(0);
+    return;
+  }
+  if(!confirm("Bu seansta işaretlediklerin silinsin mi? Geçmişe kaydedilmeyecek.")) return;
+
+  clearSession(db.person, day.program.id, day.key);
+  save();
+  releaseAwake();
+  hideTimer();
+  render();
+  goPage(0, true);
+  toast("Seans silindi");
+}
+
 /* ---------- kurulum ---------- */
 
 export function initWorkout(hooks){
@@ -278,7 +311,7 @@ export function initWorkout(hooks){
       const w = pager.clientWidth;
       if(!w) return;
       const i = Math.round(pager.scrollLeft / w);
-      if(i !== pageIx){ pageIx = i; markRail(); }
+      if(i !== pageIx){ pageIx = i; markPage(); markRail(); }
     });
   });
 
@@ -303,10 +336,14 @@ export function initWorkout(hooks){
   $("begin").onclick = () => goPage(1);
   $("finish").onclick = finishSession;
   $("share").onclick = share;
+  $("discard").onclick = discardSession;
+
+  $("back").onclick = () => { buzz(10); goPage(0); };
 
   $("rail").addEventListener("click", ev => {
     const g = ev.target.closest("[data-jump]");
-    if(g) goPage(+g.dataset.jump + 1);
+    if(!g) return;
+    goPage(g.dataset.jump === "end" ? pageCount() - 1 : +g.dataset.jump + 1);
   });
 
   $("days").addEventListener("click", ev => {

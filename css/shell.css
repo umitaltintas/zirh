@@ -42,6 +42,12 @@ main>.view{max-width:var(--wrap);margin:0 auto;padding-left:16px;padding-right:1
   border:1px solid var(--line);background:var(--surface);border-radius:9px;cursor:pointer;
 }
 .iconbtn svg{width:17px;height:17px;stroke:var(--text-2);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+
+/* Geri düğmesi yalnızca seansın içindeyken çıkar; genel bakışta
+   dönülecek bir yer yok, o yüzden yer kaplamasın. */
+.back{display:none}
+.back svg{width:19px;height:19px;stroke:var(--text);stroke-width:2.1}
+body[data-page="ex"] .back{display:grid}
 html[data-theme="dark"] .iconbtn .sun{display:none}
 html[data-theme="light"] .iconbtn .moon{display:none}
 
@@ -59,6 +65,18 @@ html[data-theme="light"] .iconbtn .moon{display:none}
   transition:background .25s var(--ease), transform .2s var(--ease);
 }
 .railgroup i.on{background:var(--accent)}
+
+/* Rayın sonu: seansı bitirme kısayolu. Set çizgileri gibi esnemez,
+   sabit genişlikte durur ki hareket sayısı değişince yerinden oynamasın. */
+.railend{flex:0 0 auto;align-items:center;padding:0 1px}
+.railend svg{
+  width:13px;height:13px;display:block;
+  stroke:var(--rail-off);fill:none;stroke-width:3.4;
+  stroke-linecap:round;stroke-linejoin:round;
+  transition:stroke .25s var(--ease);
+}
+.railend.now svg,
+.railend:hover svg{stroke:var(--p10)}
 .railcount{
   font-family:var(--display);font-weight:700;font-size:15px;line-height:1;
   color:var(--text-3);font-variant-numeric:tabular-nums;flex:none;padding-left:2px;

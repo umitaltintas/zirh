@@ -94,6 +94,26 @@ function run(){
        JSON.stringify(saved.active.erkek));
     ok("dinlenme sayacı açıldı", d.getElementById("timer").classList.contains("on"));
 
+    /* ---- seanstan çıkış yolları ---- */
+    d.getElementById("begin").click();
+    ok("başlayınca geri düğmesi çıkıyor",
+       w.getComputedStyle(d.getElementById("back")).display !== "none");
+    d.getElementById("back").click();
+    ok("geri düğmesi genel bakışa döndürüyor", d.body.dataset.page === "start");
+    ok("genel bakışta geri düğmesi gizli",
+       w.getComputedStyle(d.getElementById("back")).display === "none");
+
+    ok("rayda bitiş kısayolu var", !!d.querySelector('#rail [data-jump="end"]'));
+    d.querySelector('#rail [data-jump="end"]').click();
+    /* scrollLeft'e bakılmıyor: headless tarayıcı behavior:"smooth" kaydırmayı
+       çalıştırmıyor. Rayın işareti ise sayfa göstergesiyle birlikte anında
+       güncelleniyor, dolayısıyla asıl durumu o taşıyor. */
+    ok("bitiş kısayolu son sayfayı işaretliyor",
+       d.querySelector("#rail .railend").classList.contains("now"));
+    ok("seansı silme düğmesi var", !!d.getElementById("discard"));
+
+    d.getElementById("begin").click();
+
     /* ---- teknik paneli ve video ---- */
     d.querySelector('#ex-0 [data-tech]').click();
     ok("teknik paneli açıldı", d.getElementById("sheet").classList.contains("on"));
