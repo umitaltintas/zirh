@@ -100,6 +100,9 @@ function run(){
        w.getComputedStyle(d.getElementById("back")).display !== "none");
     d.getElementById("back").click();
     ok("geri düğmesi genel bakışa döndürüyor", d.body.dataset.page === "start");
+    ok("set işaretliyken bitiş düğmesi çıkıyor", !d.getElementById("tofinish").hidden);
+    var fin = d.getElementById("tofinish").getBoundingClientRect();
+    ok("bitiş düğmesi parmak boyutunda", fin.height >= 44, Math.round(fin.height) + "px");
     ok("genel bakışta geri düğmesi gizli",
        w.getComputedStyle(d.getElementById("back")).display === "none");
 
@@ -111,6 +114,24 @@ function run(){
     ok("bitiş kısayolu son sayfayı işaretliyor",
        d.querySelector("#rail .railend").classList.contains("now"));
     ok("seansı silme düğmesi var", !!d.getElementById("discard"));
+
+    /* Geri düğmesi başka sekmelerde görünmemeli: sayfalayıcı orada
+       görünmediği için basılıyor ama ekranda hiçbir şey olmuyordu. */
+    d.getElementById("begin").click();
+    d.getElementById("tab-ogun").click();
+    ok("geri düğmesi öğün sekmesinde gizli",
+       w.getComputedStyle(d.getElementById("back")).display === "none");
+    d.getElementById("tab-antrenman").click();
+    ok("antrenmana dönünce geri düğmesi geliyor",
+       w.getComputedStyle(d.getElementById("back")).display !== "none");
+
+    /* Dokunma hedefleri parmak boyutunda olmalı. */
+    var endBtn = d.querySelector("#rail .railend").getBoundingClientRect();
+    ok("ray bitiş hedefi yeterince büyük",
+       endBtn.height >= 30 && endBtn.width >= 28,
+       Math.round(endBtn.width) + "x" + Math.round(endBtn.height));
+    var grp = d.querySelector("#rail .railgroup").getBoundingClientRect();
+    ok("ray hareket hedefi yeterince yüksek", grp.height >= 26, Math.round(grp.height) + "px");
 
     d.getElementById("begin").click();
 

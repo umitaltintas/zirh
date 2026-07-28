@@ -43,18 +43,22 @@ main>.view{max-width:var(--wrap);margin:0 auto;padding-left:16px;padding-right:1
 }
 .iconbtn svg{width:17px;height:17px;stroke:var(--text-2);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 
-/* Geri düğmesi yalnızca seansın içindeyken çıkar; genel bakışta
-   dönülecek bir yer yok, o yüzden yer kaplamasın. */
+/* Geri düğmesi yalnızca antrenman sekmesinde ve seansın içindeyken çıkar.
+   Sekme koşulu şart: başka sekmedeyken sayfalayıcı görünmediği için
+   düğme basılıyor ama ekranda hiçbir şey olmuyordu. */
 .back{display:none}
 .back svg{width:19px;height:19px;stroke:var(--text);stroke-width:2.1}
-body[data-page="ex"] .back{display:grid}
+body[data-tab="antrenman"][data-page="ex"] .back{display:grid}
 html[data-theme="dark"] .iconbtn .sun{display:none}
 html[data-theme="light"] .iconbtn .moon{display:none}
 
 /* İmza öğesi: seansın set rayı. Her hareket bir grup, her set bir çizgi. */
 .rail{display:flex;gap:7px;padding:0 16px 9px;max-width:var(--wrap);margin:0 auto;align-items:center}
+/* Çizgiler 4 piksel; parmak 4 pikseli bulamaz. Dolgu dokunma alanını
+   büyütür, eksi kenar boşluğu da rayın görünen yüksekliğini korur. */
 .railgroup{
-  display:flex;gap:2px;cursor:pointer;opacity:.45;border:0;background:transparent;padding:0;
+  display:flex;gap:2px;cursor:pointer;opacity:.45;border:0;background:transparent;
+  padding:11px 0;margin:-11px 0;align-items:center;
   transition:opacity .2s var(--ease);
 }
 .railgroup.now{opacity:1}
@@ -68,7 +72,7 @@ html[data-theme="light"] .iconbtn .moon{display:none}
 
 /* Rayın sonu: seansı bitirme kısayolu. Set çizgileri gibi esnemez,
    sabit genişlikte durur ki hareket sayısı değişince yerinden oynamasın. */
-.railend{flex:0 0 auto;align-items:center;padding:0 1px}
+.railend{flex:0 0 auto;padding:11px 9px;margin:-11px -3px -11px 0}
 .railend svg{
   width:13px;height:13px;display:block;
   stroke:var(--rail-off);fill:none;stroke-width:3.4;

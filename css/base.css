@@ -119,6 +119,8 @@ h2.sec::after{content:"";flex:1;height:1px;background:var(--line)}
   transition:opacity .16s var(--ease),transform .12s var(--ease);
 }
 .btn:active{transform:scale(.99)}
+/* display:flex, hidden niteliğini ezer; öznitelik seçicisi geri alıyor. */
+.btn[hidden]{display:none}
 .btn:disabled{opacity:.42;cursor:default}
 .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--text)}
 .btn.green{background:var(--p10)}

@@ -171,6 +171,8 @@ export function refresh(){
     done === total ? "Tamamlandı, seansı kaydet" :
     done + " / " + total + " set bitti";
   $("begin").textContent = done === 0 ? "Antrenmana başla" : "Antrenmana devam et";
+  /* Bitiş yalnızca kaydedilecek bir şey varken anlamlı. */
+  $("tofinish").hidden = done === 0;
 
   $("f-sets").textContent = done + "/" + total;
   $("f-ex").textContent = exDone + "/" + day.ex.length;
@@ -334,6 +336,7 @@ export function initWorkout(hooks){
   });
 
   $("begin").onclick = () => goPage(1);
+  $("tofinish").onclick = () => goPage(pageCount() - 1);
   $("finish").onclick = finishSession;
   $("share").onclick = share;
   $("discard").onclick = discardSession;
