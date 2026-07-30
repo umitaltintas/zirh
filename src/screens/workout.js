@@ -14,6 +14,7 @@ import { openSheet } from "../ui/sheet.js";
 import { startTimer, hideTimer, unlockAudio, keepAwake, releaseAwake } from "../ui/timer.js";
 import { go } from "../ui/router.js";
 import { videoFor } from "../data/videos.js";
+import { warmupFor, cooldown, warmMove } from "../data/warmup.js";
 
 let pager, day, pageIx = 0, rafPending = false;
 let onSessionSaved = () => {};
@@ -79,6 +80,7 @@ export function render(){
   const p = day.program;
 
   renderDays();
+  renderWarm();
   $("h-kicker").textContent = p.id + ". " + p.name + " · " + day.key + " günü";
   $("h-title").textContent = day.title;
   $("h-desc").textContent = day.desc;
@@ -217,25 +219,80 @@ function nextUp(exIndex){
 
 /* ---------- teknik paneli ---------- */
 
+/* Panelin gövdesi. Antrenman hareketi de ısınma hareketi de aynı üç
+   soruyu cevaplıyor, o yüzden kalıp ortak. */
+function techBody(m, v){
+  return '<div class="exbody">' +
+    '<h4>Neden bu hareket</h4><p class="why">' + esc(m.why) + '</p>' +
+    '<h4>Nasıl yapılır</h4><ol>' + m.cues.map(c => "<li>" + esc(c) + "</li>").join("") + '</ol>' +
+    '<div class="warnbox"><b>En sık hata.</b> ' + esc(m.mistake) + '</div>' +
+    (v
+      ? '<div class="videoslot" data-vid="' + esc(v.id) + '">' +
+          '<button type="button" class="vbtn">' +
+            '<svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></svg>Tekniği izle</button>' +
+          '<p class="vmeta">' + esc(v.channel) + '</p>' +
+        '</div>'
+      : m.noVideo
+        ? ''
+        : '<p class="note" style="margin-top:14px">Bu hareket için seçilmiş bir video henüz yok.</p>') +
+  '</div>';
+}
+
 function openTech(i){
   const e = day.ex[i];
-  const v = videoFor(e.id);
   openSheet({
     title: e.name,
     sub: e.alt + " · " + e.target,
-    html:
-      '<div class="exbody">' +
-        '<h4>Neden bu hareket</h4><p class="why">' + esc(e.why) + '</p>' +
-        '<h4>Nasıl yapılır</h4><ol>' + e.cues.map(c => "<li>" + esc(c) + "</li>").join("") + '</ol>' +
-        '<div class="warnbox"><b>En sık hata.</b> ' + esc(e.mistake) + '</div>' +
-        (v
-          ? '<div class="videoslot" data-vid="' + esc(v.id) + '">' +
-              '<button type="button" class="vbtn">' +
-                '<svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></svg>Tekniği izle</button>' +
-              '<p class="vmeta">' + esc(v.channel) + '</p>' +
-            '</div>'
-          : '<p class="note" style="margin-top:14px">Bu hareket için seçilmiş bir video henüz yok.</p>') +
+    html: techBody(e, videoFor(e.id))
+  });
+}
+
+/* ---------- ısınma ve soğuma ---------- */
+
+/* Her satır düğme: videosu olmayanın da anlatacak bir şeyi var,
+   hepsi aynı paneli açıyor. */
+function warmHTML(list){
+  return list.map(m =>
+    '<li><button type="button" data-warm="' + esc(m.id) + '">' +
+      '<span class="t">' + esc(m.dose) + '</span>' +
+      '<span>' + esc(m.name) + '<span class="sub">' + esc(m.sub) + '</span></span>' +
+    '</button></li>'
+  ).join("");
+}
+
+/* "Günün ilk hareketi" satırı hangi hareket olduğunu söylesin —
+   program değiştiğinde metin kendiliğinden doğru kalır. */
+const firstMoveName = () => (day.ex[0] ? day.ex[0].name : "");
+
+function renderWarm(){
+  $("warm").innerHTML = warmHTML(warmupFor(day).map(m =>
+    m.id === "first-move" && firstMoveName() ? { ...m, sub: firstMoveName() + " · sayılmaz" } : m
+  ));
+}
+
+/* Soğuma tek panelde, üç hareket art arda: bitiş sayfasında liste
+   olarak duracak yer yok, üç ayrı panel de gereksiz gidiş geliş. */
+function openCool(){
+  openSheet({
+    title: "Soğuma",
+    sub: "Seansı kaydetmeden önce 5 dakika",
+    html: cooldown().map(m =>
+      '<div class="coolpart">' +
+        '<h3><span class="t">' + esc(m.dose) + '</span>' + esc(m.name) + '</h3>' +
+        techBody(m, videoFor(m.id)) +
       '</div>'
+    ).join("")
+  });
+}
+
+function openWarm(id){
+  const m = warmMove(id);
+  if(!m) return;
+  const sub = id === "first-move" && firstMoveName() ? firstMoveName() : m.sub;
+  openSheet({
+    title: m.name,
+    sub: m.dose + " · " + sub,
+    html: techBody(m, videoFor(id))
   });
 }
 
@@ -325,7 +382,10 @@ export function initWorkout(hooks){
     if(step) return stepWeight(+step.dataset.step, +step.dataset.dir);
 
     const tb = ev.target.closest("[data-tech]");
-    if(tb) openTech(+tb.dataset.tech);
+    if(tb) return openTech(+tb.dataset.tech);
+
+    const wb = ev.target.closest("[data-warm]");
+    if(wb) openWarm(wb.dataset.warm);
   });
 
   pager.addEventListener("input", ev => {
@@ -337,6 +397,7 @@ export function initWorkout(hooks){
 
   $("begin").onclick = () => goPage(1);
   $("tofinish").onclick = () => goPage(pageCount() - 1);
+  $("tocool").onclick = openCool;
   $("finish").onclick = finishSession;
   $("share").onclick = share;
   $("discard").onclick = discardSession;

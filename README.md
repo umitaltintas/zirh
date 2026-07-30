@@ -54,6 +54,7 @@ src/
     exercises.js        hareket kataloğu — teknik, ipuçları, sık hata
     programs.js         1-5 seviye program setleri
     videos.js           doğrulanmış YouTube kimlikleri
+    warmup.js           güne göre ısınma, seans sonrası soğuma
     meals.js            öğün veritabanı
     nutrition.js        kalori ve makro hesabı
   ui/
@@ -67,9 +68,13 @@ src/
     meals.js            günlük öğün planı
 sw.js                   çevrimdışı önbellek
 _test.html              tarayıcıda açılan gerileme testleri
+tools/
+  video-check.sh        video kimlikleri hâlâ ayakta mı, yeterli mi
 ```
 
 **Neden hareket ve program ayrı dosyada:** bir hareketin nasıl yapıldığı değişmez, kaç set yapılacağı programa göre değişir. `exercises.js` ilkini, `programs.js` ikincisini tutar. Aynı hareket beş programda geçebiliyor ve teknik anlatımı tek yerde duruyor.
+
+**Isınma neden ayrı:** ısınma hareketlerinin ağırlığı ve seans kaydı yoktur, o yüzden `exercises.js`'e girmezler. Hangi ısınmanın hangi güne gideceğini programdaki `warm` alanı söyler: itiş gününde omuz açılır, bacak gününde kalça.
 
 ## Geliştirme
 
@@ -82,6 +87,14 @@ Service worker'ın çalışması için `file://` değil `http://` üzerinden aç
 Testler: `http://localhost:8765/_test.html`. Gerçek bir iframe içinde, dört farklı ekran boyutunda çalışır — görünüm bindirmesi, sayfa taşması, seviye değişimi, seans kalıcılığı, öğün planı ve masaüstü hizalaması.
 
 Değişiklikten sonra `sw.js` içindeki `CACHE` sürümü artırılmalı; yoksa eski dosyalar önbellekte kalır.
+
+Videolar zamanla çürür — kanal kapanır, video kaldırılır. Ara sıra:
+
+```
+sh tools/video-check.sh
+```
+
+Her kimliği YouTube'a sorar; `KIRIK` çıkan hemen değişmeli, `ZAYIF` çıkan (çok kısa ya da neredeyse hiç izlenmemiş) sırada bekler. Testlerin içinde değil, çünkü ağ ister.
 
 ## Uyarı
 

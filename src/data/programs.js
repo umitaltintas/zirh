@@ -10,6 +10,10 @@
 
    Bir güne yazılan set/tekrar/dinlenme programa aittir; hareketin
    kendisi (teknik, video, başlangıç ağırlığı) exercises.js'te.
+
+   Her günün bir "warm" alanı var: o gün hangi kalıba yaslanıyorsa
+   ısınma da ona göre seçilsin diye. Karşılıkları warmup.js'te —
+   full, push, pull, legs, hinge.
    ============================================================ */
 
 import { EXERCISES } from "./exercises.js";
@@ -27,6 +31,7 @@ export const PROGRAMS = [
       {
         key: "A", title: "İtiş, çekiş, bacak", short: "İtiş, çekiş, bacak",
         desc: "Vücudun tamamı tek seansta. Makine ağırlıklı, öğrenmesi kolay, dengeye ihtiyaç duymayan hareketler.",
+        warm: "full",
         ex: [
           { id: "leg-press", sets: 3, reps: "10-12", rest: 120 },
           { id: "chest-press-machine", sets: 3, reps: "10-12", rest: 90 },
@@ -39,6 +44,7 @@ export const PROGRAMS = [
       {
         key: "B", title: "Kalça, sırt, omuz", short: "Kalça, sırt, omuz",
         desc: "Aynı kas gruplarına farklı açıdan. A gününden en az 2 gün sonra yapın.",
+        warm: "full",
         ex: [
           { id: "hip-thrust", sets: 3, reps: "10-12", rest: 120 },
           { id: "lat-pulldown", sets: 3, reps: "10-12", rest: 90 },
@@ -63,6 +69,7 @@ export const PROGRAMS = [
       {
         key: "A", title: "Squat ve itiş", short: "Squat, itiş",
         desc: "Goblet squat ile squat kalıbını öğren, dambılla itişe geç.",
+        warm: "full",
         ex: [
           { id: "goblet-squat", sets: 3, reps: "8-10", rest: 120 },
           { id: "db-bench-press", sets: 3, reps: "8-10", rest: 90 },
@@ -74,6 +81,7 @@ export const PROGRAMS = [
       {
         key: "B", title: "Kalça menteşesi ve çekiş", short: "Kalça, çekiş",
         desc: "Romen deadlift kalça kalıbını kurar; hafta içindeki en değerli beceri.",
+        warm: "hinge",
         ex: [
           { id: "db-romanian-deadlift", sets: 3, reps: "8-10", rest: 120 },
           { id: "lat-pulldown", sets: 3, reps: "8-10", rest: 90 },
@@ -85,6 +93,7 @@ export const PROGRAMS = [
       {
         key: "C", title: "Kalça ve üst göğüs", short: "Kalça, üst göğüs",
         desc: "Haftanın üçüncü günü; hacmi artırır, ilk iki günün eksiğini tamamlar.",
+        warm: "hinge",
         ex: [
           { id: "hip-thrust", sets: 3, reps: "8-10", rest: 120 },
           { id: "incline-db-press", sets: 3, reps: "10", rest: 90 },
@@ -109,6 +118,7 @@ export const PROGRAMS = [
       {
         key: "İ", title: "İtiş", short: "Göğüs, omuz, triceps",
         desc: "Vücudun ittiği her şey. Ağır bileşik hareketle başla, izolasyonla bitir.",
+        warm: "push",
         ex: [
           { id: "barbell-bench-press", sets: 4, reps: "6-8", rest: 150 },
           { id: "overhead-press", sets: 3, reps: "8-10", rest: 120 },
@@ -120,6 +130,7 @@ export const PROGRAMS = [
       {
         key: "Ç", title: "Çekiş", short: "Sırt, arka omuz, biceps",
         desc: "Vücudun çektiği her şey. İtiş gününün karşı ağırlığı, duruşun bekçisi.",
+        warm: "pull",
         ex: [
           { id: "barbell-row", sets: 4, reps: "6-8", rest: 150 },
           { id: "lat-pulldown", sets: 3, reps: "8-10", rest: 90 },
@@ -131,6 +142,7 @@ export const PROGRAMS = [
       {
         key: "B", title: "Bacak", short: "Bacak, kalça, baldır",
         desc: "Haftanın en zor günü. Atlamak isteyeceğin gün de bu; atlanmaması gereken gün de.",
+        warm: "legs",
         ex: [
           { id: "back-squat", sets: 4, reps: "6-8", rest: 180 },
           { id: "romanian-deadlift", sets: 3, reps: "8-10", rest: 150 },
@@ -154,6 +166,7 @@ export const PROGRAMS = [
       {
         key: "Ü1", title: "Üst · itiş ağırlıklı", short: "Üst vücut, itiş",
         desc: "Bench ve omuz presi ağır; çekiş ve kol işi hacim için.",
+        warm: "push",
         ex: [
           { id: "barbell-bench-press", sets: 4, reps: "5-8", rest: 180 },
           { id: "overhead-press", sets: 3, reps: "6-8", rest: 150 },
@@ -166,6 +179,7 @@ export const PROGRAMS = [
       {
         key: "A1", title: "Alt · squat ağırlıklı", short: "Alt vücut, squat",
         desc: "Squat ağır; tek bacak ve arka bacak işi dengeyi kurar.",
+        warm: "legs",
         ex: [
           { id: "back-squat", sets: 4, reps: "5-8", rest: 180 },
           { id: "romanian-deadlift", sets: 3, reps: "8-10", rest: 150 },
@@ -177,6 +191,7 @@ export const PROGRAMS = [
       {
         key: "Ü2", title: "Üst · çekiş ağırlıklı", short: "Üst vücut, çekiş",
         desc: "Bu kez sırt önce geliyor; göğüs eğik açıdan çalışıyor.",
+        warm: "pull",
         ex: [
           { id: "barbell-row", sets: 4, reps: "6-8", rest: 150 },
           { id: "incline-db-press", sets: 4, reps: "8-10", rest: 120 },
@@ -189,6 +204,7 @@ export const PROGRAMS = [
       {
         key: "A2", title: "Alt · deadlift ağırlıklı", short: "Alt vücut, deadlift",
         desc: "Deadlift ağır ve az tekrarlı; gerisi kalça ve ön bacak için.",
+        warm: "hinge",
         ex: [
           { id: "deadlift", sets: 3, reps: "5", rest: 180 },
           { id: "front-squat", sets: 3, reps: "8-10", rest: 150 },
@@ -212,6 +228,7 @@ export const PROGRAMS = [
       {
         key: "G", title: "Göğüs ve triceps", short: "Göğüs, triceps",
         desc: "İtiş kaslarının tamamı tek günde, ağırdan izolasyona.",
+        warm: "push",
         ex: [
           { id: "barbell-bench-press", sets: 4, reps: "5-8", rest: 180 },
           { id: "incline-db-press", sets: 4, reps: "8-10", rest: 120 },
@@ -223,6 +240,7 @@ export const PROGRAMS = [
       {
         key: "S", title: "Sırt ve biceps", short: "Sırt, biceps",
         desc: "Deadlift ile başlar; haftanın en çok kas kütlesi yükleyen günü.",
+        warm: "pull",
         ex: [
           { id: "deadlift", sets: 3, reps: "5", rest: 180 },
           { id: "barbell-row", sets: 4, reps: "6-8", rest: 150 },
@@ -235,6 +253,7 @@ export const PROGRAMS = [
       {
         key: "B", title: "Bacak", short: "Bacak, baldır",
         desc: "5×5 squat; ağırlık artışını asıl bu set şeması taşır.",
+        warm: "legs",
         ex: [
           { id: "back-squat", sets: 5, reps: "5", rest: 180 },
           { id: "romanian-deadlift", sets: 4, reps: "8", rest: 150 },
@@ -246,6 +265,7 @@ export const PROGRAMS = [
       {
         key: "O", title: "Omuz ve karın", short: "Omuz, karın",
         desc: "Üç omuz başının üçü de ayrı çalışır; karın işi sona kalır.",
+        warm: "push",
         ex: [
           { id: "overhead-press", sets: 4, reps: "6-8", rest: 150 },
           { id: "db-shoulder-press", sets: 3, reps: "10-12", rest: 90 },
@@ -258,6 +278,7 @@ export const PROGRAMS = [
       {
         key: "K", title: "Kalça ve arka zincir", short: "Kalça, arka zincir",
         desc: "Bacak gününün tamamlayıcısı; kalça, arka bacak ve bel.",
+        warm: "hinge",
         ex: [
           { id: "hip-thrust", sets: 4, reps: "8-10", rest: 150 },
           { id: "bulgarian-split-squat", sets: 3, reps: "10 / taraf", rest: 90 },

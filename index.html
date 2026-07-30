@@ -81,12 +81,9 @@
           </div>
         </section>
 
-        <p class="plabel" style="margin:18px 0 7px">Isınma · 6 dakika</p>
-        <ul class="warm card" style="padding:14px 16px">
-          <li><span class="t">5 dk</span><span>Bisiklet ya da koşu bandı<span class="sub">Konuşabileceğin tempoda</span></span></li>
-          <li><span class="t">10 tk</span><span>Wall angel<span class="sub">Omuzları açar</span></span></li>
-          <li><span class="t bw">1 set</span><span>Günün ilk hareketi, çok hafif<span class="sub">12 tekrar, sayılmaz</span></span></li>
-        </ul>
+        <p class="plabel warmlabel">Isınma · 6 dakika</p>
+        <!-- Günün kalıbına göre doldurulur; içeriği data/warmup.js'te. -->
+        <ul class="warm card" id="warm"></ul>
 
         <div class="pspacer"></div>
         <button class="btn" id="begin">Antrenmana başla</button>
@@ -99,13 +96,16 @@
       <div class="page" id="page-finish">
         <p class="plabel">Seansı bitir</p>
         <h2 class="pname" id="f-title">Seansı kaydet</h2>
-        <p class="palt">Bitirince 3-4 dakika hafif yürüyüş, sonra göğüs ve kalça ön yüzü için birer esneme.</p>
+        <p class="palt">Kayıt telefonunda saklanır — bir sonraki seansta hangi ağırlıkla çalıştığın karşına çıkar.</p>
 
         <div class="pmeta" style="margin-top:16px">
           <div><b id="f-sets">0/0</b><span>Set</span></div>
           <div><b id="f-ex">0/0</b><span>Hareket</span></div>
         </div>
-        <p class="note" style="margin-top:13px">Kayıt telefonunda saklanır — bir sonraki seansta hangi ağırlıkla çalıştığın karşına çıkar.</p>
+
+        <!-- Soğuma listesi panelde: bitiş sayfasında üç düğmenin
+             yanına sığmıyor, kaydırmalı bir seans ekranı istemiyoruz. -->
+        <button type="button" class="techrow" id="tocool">Soğuma ve esneme · 5 dakika</button>
 
         <div class="pspacer"></div>
         <button class="btn green" id="finish" disabled>Seansı kaydet</button>

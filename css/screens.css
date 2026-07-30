@@ -56,6 +56,10 @@ body[data-tab="antrenman"] main{overflow-y:hidden}
 .hero{
   background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
   padding:18px 18px 16px;position:relative;overflow:hidden;box-shadow:var(--shadow);
+  /* Sayfa flex kolon: küçülmeye izin verilirse kart eziliyor ve
+     ilerleme çubuğu görünmez oluyordu. Sığmıyorsa sayfa kaysın,
+     kartın alt yarısı yutulmasın. */
+  flex:none;
 }
 .hero::before{
   content:"";position:absolute;right:-56px;top:-56px;width:170px;height:170px;
@@ -84,17 +88,38 @@ html[data-theme="light"] .heroprog .bar{background:#E3E5EA}
 .heroprog .bar i{display:block;height:100%;width:0;background:var(--accent);border-radius:3px;transition:width .3s var(--ease)}
 .heroprog span{font-size:12.5px;color:var(--text-2);font-variant-numeric:tabular-nums;white-space:nowrap}
 
-/* ısınma */
-.warm{list-style:none;margin:0;padding:0}
-.warm li{display:flex;gap:11px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--line-soft);font-size:14px}
-.warm li:last-child{border-bottom:0;padding-bottom:0}
-.warm li:first-child{padding-top:0}
+/* ısınma ve soğuma — her satır kendi tekniğini açan bir düğme */
+.warmlabel{margin:18px 0 7px}
+.warm{list-style:none;margin:0;padding:14px 16px}
+.warm li{border-bottom:1px solid var(--line-soft)}
+.warm li:last-child{border-bottom:0}
+.warm button{
+  display:flex;gap:11px;align-items:flex-start;width:100%;
+  padding:9px 0;border:0;background:transparent;cursor:pointer;
+  font:inherit;font-size:14px;color:inherit;text-align:left;
+}
+.warm li:first-child button{padding-top:0}
+.warm li:last-child button{padding-bottom:0}
+.warm button:active{opacity:.55}
 .warm .t{
   font-family:var(--display);font-weight:700;font-size:14px;color:var(--accent);
   flex:none;min-width:38px;padding-top:2px;font-variant-numeric:tabular-nums;
 }
-.warm .t.bw{font-size:12px}
 .warm span.sub{display:block;color:var(--text-3);font-size:12.5px}
+/* satırın açılabilir olduğunu belli eden ok */
+.warm button::after{
+  content:"";width:7px;height:7px;flex:none;margin:5px 2px 0 auto;
+  border-right:2px solid var(--text-3);border-top:2px solid var(--text-3);
+  transform:rotate(45deg);opacity:.6;
+}
+
+/* soğuma paneli: üç hareket art arda, her biri kendi videosuyla */
+.coolpart + .coolpart{margin-top:17px;padding-top:15px;border-top:1px solid var(--line)}
+.coolpart h3{
+  font-family:var(--display);font-weight:700;font-size:17px;margin:0 0 11px;
+  display:flex;align-items:baseline;gap:8px;
+}
+.coolpart h3 .t{color:var(--accent);font-size:14px;font-variant-numeric:tabular-nums}
 
 /* hareket sayfası — üst bilgi */
 .peyebrow{
@@ -385,6 +410,13 @@ html[data-theme="light"] .gaugebar{background:#E3E5EA}
    ============================================================ */
 @media (max-height:740px){
   .pcues{display:none}
+  /* Genel bakışta gün açıklaması ile ısınma yarışıyor; kısa ekranda
+     ısınma kazanır — açıklama zaten gün seçicide de yazılı. */
+  .hero .desc{display:none}
+  .hero{padding:15px 16px 13px}
+  .hero h1{font-size:33px;margin:5px 0 0}
+  .meta{margin-top:12px}
+  .heroprog{margin-top:12px;padding-top:10px}
   .page{padding:10px 16px 8px}
   .pname{font-size:27px;margin:5px 0 3px}
   .palt{font-size:12px}
@@ -398,6 +430,28 @@ html[data-theme="light"] .gaugebar{background:#E3E5EA}
   .kgbig .kg{font-size:25px}
   .setrow-big .setbtn{height:52px;font-size:20px}
   .techrow{margin-top:9px;padding:11px 15px}
+}
+/* Isınma listesi genel bakışın en esnek parçası: dört satırı da
+   göstermek istiyoruz ama sayfa kaydırmasın. Bu yüzden hero'nun
+   daraldığı eşikten önce, daha erken bir eşikte sıkışmaya başlar. */
+@media (max-height:820px){
+  .warmlabel{margin:12px 0 5px}
+  .warm{padding:11px 14px}
+  .warm button{padding:7px 0}
+  /* Alt açıklama satırı gider, hareketin kendisi kalır: dört satırlık
+     ısınmayı üçe indirmektense özeti panele bırakmak daha iyi. */
+  .warm span.sub{display:none}
+}
+/* En dar telefonlarda kart iyice sadeleşir. Giden bilgilerin hepsi
+   başka yerde duruyor: program adı profilde, gün harfi seçicide,
+   süre/hareket/set seansın kendi sayfalarında. Kalan ilerleme
+   çubuğunun başka kopyası yok, o yüzden o kalıyor. */
+@media (max-height:660px){
+  .hero{padding:14px 16px 13px}
+  .hero .kicker{display:none}
+  .hero h1{font-size:28px;margin:0 0 6px}
+  .hero .meta{display:none}
+  .heroprog{margin-top:0;padding-top:11px}
 }
 @media (min-width:520px){
   .hero h1{font-size:44px}

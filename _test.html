@@ -50,6 +50,38 @@ function run(){
     ok("1. seviyede 2 gün", d.querySelectorAll('#days [data-day]').length === 2);
     ok("6 hareket sayfası", d.querySelectorAll(".page.dyn").length === 6);
 
+    /* ---- ısınma ve soğuma ---- */
+    ok("ısınma listesi dolduruldu", d.querySelectorAll("#warm [data-warm]").length === 4,
+       d.querySelectorAll("#warm [data-warm]").length + " satır");
+    ok("ısınma günün ilk hareketini adıyla söylüyor",
+       /Leg Press/.test(d.querySelector('#warm [data-warm="first-move"]').textContent),
+       d.querySelector('#warm [data-warm="first-move"]').textContent);
+
+    /* Isınma paneli teknik panelinden önce deneniyor: panel kapatma
+       history.back() çağırıyor ve test sayfasını da geri götürüyor. */
+    d.querySelector('#warm [data-warm="wall-angel"]').click();
+    ok("ısınma paneli açıldı", d.getElementById("sheet").classList.contains("on"));
+    var wslot = d.querySelector("#sheet-body .videoslot");
+    ok("ısınma hareketinin videosu bağlı",
+       !!wslot && /^[A-Za-z0-9_-]{11}$/.test(wslot.dataset.vid),
+       wslot ? wslot.dataset.vid : "yok");
+    ok("ısınma panelinde teknik adımları var", d.querySelectorAll("#sheet-body ol li").length >= 3);
+
+    /* Kardiyonun videosu yok ve bu bir eksiklik değil — panel de öyle
+       demeli, "video henüz yok" diye şikâyet etmemeli. */
+    d.querySelector('#warm [data-warm="warm-cardio"]').click();
+    ok("videosuz ısınma satırı eksiklik bildirmiyor",
+       !d.querySelector("#sheet-body .videoslot") && !d.querySelector("#sheet-body .note"));
+
+    /* Soğuma bitiş sayfasında tek düğme, panelde üç hareket. */
+    d.getElementById("tocool").click();
+    ok("soğuma paneli üç hareket gösteriyor",
+       d.querySelectorAll("#sheet-body .coolpart").length === 3,
+       d.querySelectorAll("#sheet-body .coolpart").length + " bölüm");
+    ok("soğuma esnemelerinin videosu bağlı",
+       d.querySelectorAll("#sheet-body .videoslot").length === 2,
+       d.querySelectorAll("#sheet-body .videoslot").length + " video");
+
     var pager = d.getElementById("pager");
     var page = d.querySelector(".page.dyn");
     ok("sayfa tam genişlikte",
@@ -85,6 +117,11 @@ function run(){
     d.querySelectorAll('#days [data-day]')[2].click();
     ok("bacak gününe geçildi", d.getElementById("h-title").textContent === "Bacak",
        d.getElementById("h-title").textContent);
+
+    /* Isınma güne göre değişmeli: bacak gününde kalça açma çıkmalı,
+       omuz işi çıkmamalı. Eskiden her gün aynı üç satırdı. */
+    ok("bacak gününde kalça ısınması var", !!d.querySelector('#warm [data-warm="hip-mobility"]'));
+    ok("bacak gününde omuz ısınması yok", !d.querySelector('#warm [data-warm="shoulder-mobility"]'));
 
     /* ---- set işaretleme ve kalıcılık ---- */
     d.getElementById("tab-antrenman").click();
@@ -167,6 +204,30 @@ function run(){
     ok("hareket sayfası taşmıyor (320x568)",
        pg.scrollHeight <= pg.clientHeight + 1,
        pg.scrollHeight + " > " + pg.clientHeight);
+
+    var fp = d.getElementById("page-finish");
+    ok("bitiş sayfası taşmıyor (320x568)",
+       fp.scrollHeight <= fp.clientHeight + 1,
+       fp.scrollHeight + " > " + fp.clientHeight);
+
+    /* "Taşmıyor" testi tek başına yetmiyor: sayfa flex kolon olduğu
+       için sığmayan içerik taşmak yerine kartı eziyordu — sayfa temiz
+       görünürken ilerleme çubuğu kartın dışında kalıyordu. Onun için
+       kritik parçaların gerçekten görünür olduğuna ayrıca bakılıyor. */
+    var hero = d.querySelector("#page-start .hero");
+    var prog = d.querySelector("#page-start .heroprog");
+    ok("ilerleme çubuğu kartın içinde (320x568)",
+       prog.getBoundingClientRect().bottom <= hero.getBoundingClientRect().bottom + 1,
+       Math.round(prog.getBoundingClientRect().bottom) + " > " +
+       Math.round(hero.getBoundingClientRect().bottom));
+
+    var ps = d.getElementById("page-start");
+    ok("başla düğmesi ekranın içinde (320x568)",
+       d.getElementById("begin").getBoundingClientRect().bottom <=
+       ps.getBoundingClientRect().bottom + 1);
+    ok("ısınmanın son satırı ekranın içinde (320x568)",
+       d.querySelector("#warm li:last-child").getBoundingClientRect().bottom <=
+       ps.getBoundingClientRect().bottom + 1);
 
     /* seviye 3 hâlâ kayıtlı olmalı */
     ok("seviye yeniden yüklemede korundu",
