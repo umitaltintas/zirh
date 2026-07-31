@@ -57,6 +57,17 @@ function run(){
        /Leg Press/.test(d.querySelector('#warm [data-warm="first-move"]').textContent),
        d.querySelector('#warm [data-warm="first-move"]').textContent);
 
+    /* ---- plaka dizilimi: makinede gösterilecek bir şey yok ---- */
+    var pl0 = d.querySelector("#ex-0 .plates");
+    ok("makine hareketinde dizilim satırı boş", !!pl0 && pl0.textContent === "",
+       pl0 ? pl0.textContent : "satır yok");
+
+    /* Ne bu seansta ağırlık girilmiş ne de kayıt var: ısınma seti
+       hesaplanamaz, panel sözlü anlatımla kalmalı. */
+    d.querySelector('#warm [data-warm="first-move"]').click();
+    ok("ağırlık bilinmeyince sayısal ısınma seti yok",
+       !d.querySelector("#sheet-body .ramp"));
+
     /* Isınma paneli teknik panelinden önce deneniyor: panel kapatma
        history.back() çağırıyor ve test sayfasını da geri götürüyor. */
     d.querySelector('#warm [data-warm="wall-angel"]').click();
@@ -195,6 +206,49 @@ function run(){
        d.querySelector('#ex-0 [data-kg="0"]').value === "5",
        d.querySelector('#ex-0 [data-kg="0"]').value);
 
+    /* ---- plaka dizilimi: bar hareketi ---- */
+    var kgi = d.querySelector('#ex-0 [data-kg="0"]');
+    var pl = d.querySelector("#ex-0 .plates");
+    ok("bardan hafif ağırlıkta sadece bar yazıyor", /Sadece bar/.test(pl.textContent),
+       pl.textContent);
+
+    /* Elle yazmayı taklit ediyoruz: satır sayfa yeniden kurulmadan,
+       yalnız kendisi tazelenmeli. */
+    function yaz(v){
+      kgi.value = v;
+      kgi.dispatchEvent(new w.Event("input", { bubbles: true }));
+    }
+
+    yaz("62,5");
+    ok("62,5 kg her tarafa 20 + 1,25 diziliyor",
+       pl.textContent === "Her tarafa 20 + 1,25 kg", pl.textContent);
+    ok("dizilim satırı sayfa kurulmadan tazeleniyor",
+       d.querySelectorAll(".page.dyn").length === 5 &&
+       d.querySelector("#ex-0 .plates") === pl,
+       d.querySelectorAll(".page.dyn").length + " sayfa");
+
+    yaz("61");
+    ok("tutturulamayan ağırlık en yakınına yuvarlanıyor",
+       /en yakını 60 kg/.test(pl.textContent), pl.textContent);
+
+    /* ---- ısınma setleri ---- */
+    d.querySelector('#warm [data-warm="first-move"]').click();
+    var rmp = d.querySelectorAll("#sheet-body .rampsets li");
+    ok("ısınma paneli üç basamak ve çalışma satırı gösteriyor", rmp.length === 4,
+       rmp.length + " satır");
+    ok("ısınma ağırlıkları dizilebilir değerlere yuvarlanmış",
+       rmp.length === 4 && /^20 kg/.test(rmp[0].textContent) &&
+       /^35 kg/.test(rmp[1].textContent) && /^45 kg/.test(rmp[2].textContent),
+       [].map.call(rmp, function(r){ return r.textContent; }).join(" | "));
+    ok("son satır çalışma ağırlığı",
+       rmp.length === 4 && /61 kg/.test(rmp[3].textContent) &&
+       /çalışma/.test(rmp[3].textContent),
+       rmp.length === 4 ? rmp[3].textContent : "satır yok");
+    ok("ısınma setinde plaka dizilimi yazılı",
+       rmp.length === 4 && /sadece bar/.test(rmp[0].textContent) &&
+       /her tarafa 10 \+ 2,5/.test(rmp[2].textContent),
+       rmp.length === 4 ? rmp[0].textContent + " | " + rmp[2].textContent : "satır yok");
+
     f.remove();
     return frame(320, 568);
   }).then(function(f){
@@ -228,6 +282,16 @@ function run(){
     ok("ısınmanın son satırı ekranın içinde (320x568)",
        d.querySelector("#warm li:last-child").getBoundingClientRect().bottom <=
        ps.getBoundingClientRect().bottom + 1);
+
+    /* Dizilim satırı dar ekranda tek satıra sığmalı ve kırpılmamalı:
+       iki satıra düşse set düğmelerini aşağı iter, kırpılsa dizilim
+       yarım kalır. */
+    var plr = d.querySelector("#ex-0 .plates");
+    ok("dizilim satırı dar ekranda tek satıra sığıyor (320x568)",
+       plr.textContent !== "" && plr.getBoundingClientRect().height <= 18 &&
+       plr.scrollWidth <= plr.clientWidth + 1,
+       plr.textContent + " · " + Math.round(plr.getBoundingClientRect().height) + "px · " +
+       plr.scrollWidth + " > " + plr.clientWidth);
 
     /* seviye 3 hâlâ kayıtlı olmalı */
     ok("seviye yeniden yüklemede korundu",

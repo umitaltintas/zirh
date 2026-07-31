@@ -7,14 +7,15 @@
    izler ve gerektiğinde kaydırır.
    ============================================================ */
 
-import { $, esc, num, buzz, toast } from "../dom.js";
+import { $, esc, num, numOr0, buzz, toast } from "../dom.js";
 import { db, save, session, clearSession, buildRecord, lastFor, profile } from "../store.js";
 import { programDay, totalSets, estimateMinutes, program } from "../data/programs.js";
 import { openSheet } from "../ui/sheet.js";
 import { startTimer, hideTimer, unlockAudio, keepAwake, releaseAwake } from "../ui/timer.js";
 import { go } from "../ui/router.js";
 import { videoFor } from "../data/videos.js";
-import { warmupFor, cooldown, warmMove } from "../data/warmup.js";
+import { warmupFor, cooldown, warmMove, warmupSets } from "../data/warmup.js";
+import { plateLine, plateSetup, sideText, barWeight } from "../data/plates.js";
 
 let pager, day, pageIx = 0, rafPending = false;
 let onSessionSaved = () => {};
@@ -73,6 +74,14 @@ function paintHint(i){
   if(el) el.innerHTML = hintHTML(day.ex[i], i, cur());
 }
 
+/* Ağırlık kutusunun altındaki plaka dizilimi. Aynı sebeple nokta atışı
+   tazeleniyor: satır ağırlıkla birlikte değişiyor ama sayfanın gerisi
+   yerinde kalmalı. */
+function paintPlates(i){
+  const el = document.querySelector("#ex-" + i + " .plates");
+  if(el) el.textContent = plateLine(numOr0(cur().kg[i]), day.ex[i].gear);
+}
+
 /* ---------- sayfaları kur ---------- */
 
 export function render(){
@@ -108,7 +117,8 @@ export function render(){
             '<span class="kgunit">kg</span>' +
           '</span>' +
           '<button type="button" data-step="' + i + '" data-dir="1" aria-label="Ağırlığı artır">+</button>' +
-        '</div>';
+        '</div>' +
+        '<div class="plates">' + plateLine(numOr0(s.kg[i]), e.gear) + '</div>';
 
     return '<section class="page dyn" data-ix="' + i + '" id="ex-' + i + '" aria-label="' + esc(e.name) + '">' +
       '<div class="peyebrow"><b>' + String(i + 1).padStart(2, "0") + '</b> / ' +
@@ -285,6 +295,51 @@ function openCool(){
   });
 }
 
+/* Çalışma ağırlığı: bu seansta yazdığın değer varsa o, yoksa aynı
+   hareketin son kaydı. İkisi de yoksa hesap yapılamaz — exercises.js'teki
+   başlangıç önerisi "40-60 kg" gibi bir aralık, sayı değil. */
+function workWeight(i){
+  const e = day.ex[i];
+  if(!e || e.bw) return 0;
+  const now = numOr0(cur().kg[i]);
+  if(now > 0) return now;
+  const prev = lastFor(db.person, e.name);
+  return prev ? numOr0(prev.kg) : 0;
+}
+
+/* Isınma basamağının satırı. Plaka dizilimi burada da yazılıyor: panelde
+   yer var ve plakaların en çok değiştiği an zaten bu üç sette. Yuvarlanan
+   dizilim yazılmıyor — bir kilo şaşan sayıyı sessizce göstermektense hiç
+   göstermemek doğru. */
+function rampRow(e, kg, right){
+  const s = plateSetup(kg, e.gear);
+  const note = !s || s.rounded ? ""
+    : '<span>' + (s.side.length ? "her tarafa " + sideText(s) : "sadece bar") + '</span>';
+  return '<li><b>' + num(kg) + ' kg</b><i>' + esc(right) + '</i>' + note + '</li>';
+}
+
+/* "Günün ilk hareketi" paneline somut ısınma setleri. Ağırlık
+   bilinmiyorsa hiçbir şey eklenmez; panelde zaten sözlü anlatım var. */
+function rampHTML(){
+  const e = day.ex[0];
+  if(!e) return "";
+  const work = workWeight(0);
+  const sets = warmupSets(work, e.step, barWeight(e.gear));
+  if(!sets.length) return "";
+
+  const rows = sets.map(s => rampRow(e, s.kg, "× " + s.reps));
+  rows.push(rampRow(e, work, "çalışma ağırlığın"));
+
+  return '<div class="ramp">' +
+    '<p class="plabel">Isınma setleri</p>' +
+    '<ol class="rampsets">' + rows.join("") + '</ol>' +
+    /* Listedeki satır "1 set" diyor; sayılar çıkınca bu ikisi çelişik
+       görünmesin diye ilişkiyi burada kuruyoruz. */
+    '<p class="note">Listede tek set yazar; ağırlık büyüdükçe aradaki ' +
+      'basamaklar da gerekli olur. Hiçbiri kayda girmez.</p>' +
+  '</div>';
+}
+
 function openWarm(id){
   const m = warmMove(id);
   if(!m) return;
@@ -292,7 +347,7 @@ function openWarm(id){
   openSheet({
     title: m.name,
     sub: m.dose + " · " + sub,
-    html: techBody(m, videoFor(id))
+    html: (id === "first-move" ? rampHTML() : "") + techBody(m, videoFor(id))
   });
 }
 
@@ -393,6 +448,7 @@ export function initWorkout(hooks){
     curW().kg[ev.target.dataset.kg] = ev.target.value;
     save();
     paintHint(+ev.target.dataset.kg);
+    paintPlates(+ev.target.dataset.kg);
   });
 
   $("begin").onclick = () => goPage(1);
@@ -466,6 +522,7 @@ function stepWeight(i, dir){
   buzz(8);
   save();
   paintHint(i);
+  paintPlates(i);
 }
 
 async function share(){
