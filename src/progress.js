@@ -15,13 +15,26 @@ import { numOr0 } from "./dom.js";
 import { EXERCISES } from "./data/exercises.js";
 
 /* Kayıtta hareketin yalnızca adı duruyor, kimliği durmuyor —
-   katalog ada göre tersten kuruluyor ki step ve bw alanlarına
+   katalog ada göre tersten kuruluyor ki step ve gear alanlarına
    bakabilelim. Katalogdan çıkmış eski bir ad için undefined döner;
    çağıranlar bunu bekliyor. */
 const BY_NAME = {};
 Object.keys(EXERCISES).forEach(id => { BY_NAME[EXERCISES[id].name] = EXERCISES[id]; });
 
-export const isBodyweight = name => !!(BY_NAME[name] && BY_NAME[name].bw);
+/* 1RM yalnızca serbest ağırlıkta anlamlı. Makinede yazan kilo, o
+   makinenin kaldıraç oranıyla birlikte bir şey ifade eder; başka
+   marka bir leg press'te aynı sayı bambaşka bir yüktür. Epley oraya
+   da uygulanabilir ama çıkan rakam ne karşılaştırılabilir ne de
+   denenebilir — "1RM ≈ 147 kg" gören yeni başlayan bunu bench'inin
+   iki katı sanıyor, oysa iki sayının ortak birimi yok.
+
+   Tahmin dışında kalanlar sessizce kalır: satırda grafik ve en iyi
+   ağırlık zaten duruyor, eksik olan tek şey denenmemesi gereken bir
+   rakam. */
+const freeWeight = name => {
+  const g = BY_NAME[name] && BY_NAME[name].gear;
+  return g === "bar" || g === "ez" || g === "dambil";
+};
 
 /* "10-12" → 10 · "10 / taraf" → 10 · "20-40 sn" ve
    "yapabildiğin kadar" → null
@@ -74,9 +87,10 @@ function plateauOf(pts){
 }
 
 /* Tahmini 1RM, kişinin en iyi setinden. Son seanstan değil: kötü
-   geçen bir gün rekoru silmesin, rakam karşılaştırılabilir kalsın. */
+   geçen bir gün rekoru silmesin, rakam karşılaştırılabilir kalsın.
+   Serbest ağırlık dışında hiç hesaplanmaz — gerekçesi freeWeight'te. */
 function bestOneRepMax(name, pts){
-  if(isBodyweight(name)) return null;
+  if(!freeWeight(name)) return null;
   let best = 0;
   pts.forEach(p => {
     const e = epley(p.kg, p.reps);

@@ -489,15 +489,21 @@ function run(){
        lp.querySelector(".tfoot").textContent);
 
     /* ---- tahmini 1RM ---- */
-    /* Epley: 50 × (1 + 10/30) = 66,7 → 67. Aralığın alt ucu (10)
-       kullanılıyor, tahmin şişmesin. */
-    ok("1RM Epley ile hesaplandı", /1RM ≈ 67 kg/.test(lp.querySelector(".tfoot").textContent),
-       lp.querySelector(".tfoot").textContent);
+    /* Epley: 60 × (1 + 10/30) = 80. Aralığın alt ucu (10) kullanılıyor,
+       tahmin şişmesin. Hip Thrust barla yapılıyor; sayının bir anlamı
+       olması için hesap serbest ağırlıkla sınırlı. */
+    ok("1RM Epley ile hesaplandı", /1RM ≈ 80 kg/.test(ht.querySelector(".tfoot").textContent),
+       ht.querySelector(".tfoot").textContent);
     ok("1RM'in tahmin olduğu yazıyor",
        !!d.querySelector("#g-pr .tabout") && /tahmini/.test(d.querySelector("#g-pr .tabout").textContent));
+    /* Leg Press'te 50 kg × 10 tekrar Epley'e göre 67 kg eder ama o
+       rakam makinenin kaldıraç oranına bağlı; bench'le yan yana
+       konulamaz, denenemez de. Makinede hiç yazılmıyor. */
+    ok("makinede 1RM gösterilmiyor", !lp.querySelector(".t1rm"),
+       lp.querySelector(".tfoot").textContent);
     /* "40 sn" bir tekrar sayısı değil; Epley'e sokulacak bir şey yok.
-       Katalogda şu an ağırlıklı-süreli bir hareket bulunmuyor ama alan
-       serbest metin, koruma yerinde dursun. */
+       Shrug barla yapılıyor, yani eleyen serbest ağırlık kuralı değil
+       tekrarın olmayışı. */
     ok("süreyle ölçülen harekette 1RM yok", !row("Shrug").querySelector(".t1rm"),
        row("Shrug").textContent);
 
