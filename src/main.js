@@ -12,7 +12,7 @@ import { findDay } from "./data/programs.js";
 
 import { initRouter, go, whenEntering, currentView } from "./ui/router.js";
 import { initSheet, sheetOpen } from "./ui/sheet.js";
-import { initTimer, repaintTimer, hideTimer, releaseAwake, keepAwake } from "./ui/timer.js";
+import { initTimer, resumeTimer, hideTimer, releaseAwake, keepAwake } from "./ui/timer.js";
 
 import * as workout from "./screens/workout.js";
 import { renderHistory, wipeHistory } from "./screens/history.js";
@@ -139,7 +139,9 @@ document.addEventListener("visibilitychange", () => {
   if(document.visibilityState !== "visible") return;
   const d = workout.currentDay();
   if(d && Object.keys(session(db.person, d.program.id, d.key, false).sets).length) keepAwake();
-  repaintTimer();
+  /* Sayaç arka planda bittiyse uyarısını burada verir, sesi de burada
+     uyandırır — iOS bağlamı askıya almış olabilir. */
+  resumeTimer();
 });
 
 /* ---------- servis çalışanı ---------- */

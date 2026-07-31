@@ -131,6 +131,24 @@ function run(){
        JSON.stringify(saved.active.erkek));
     ok("dinlenme sayacı açıldı", d.getElementById("timer").classList.contains("on"));
 
+    /* Sayacın gerçekten dolmasını beklemek testi dakikalarca uzatırdı;
+       bitiş görünümünün sözleşmesi sınıfı elle takıp denetleniyor.
+       Arka plan rengi nabız animasyonu yüzünden ara değerde yakalanabilir,
+       o yüzden animasyona girmeyen kenarlık ve yazı rengine bakılıyor. */
+    var tm = d.getElementById("timer");
+    tm.classList.add("up");
+    var tin = w.getComputedStyle(d.querySelector("#timer .timerin"));
+    ok("süre dolunca sayaç kutusu yeşile dönüyor",
+       tin.borderTopColor === "rgb(31, 169, 113)", tin.borderTopColor);
+    ok("süre dolunca kutu nabız atıyor",
+       tin.animationName === "timerdone", tin.animationName);
+    ok("yeşil kutuda rakamlar okunur kalıyor",
+       w.getComputedStyle(d.getElementById("t-digits")).color === "rgb(255, 255, 255)",
+       w.getComputedStyle(d.getElementById("t-digits")).color);
+    tm.classList.remove("up");
+    ok("sayaç kapanınca bitiş görünümü de kalkıyor",
+       w.getComputedStyle(d.querySelector("#timer .timerin")).animationName === "none");
+
     /* ---- seanstan çıkış yolları ---- */
     d.getElementById("begin").click();
     ok("başlayınca geri düğmesi çıkıyor",
@@ -209,6 +227,22 @@ function run(){
     ok("bitiş sayfası taşmıyor (320x568)",
        fp.scrollHeight <= fp.clientHeight + 1,
        fp.scrollHeight + " > " + fp.clientHeight);
+
+    /* Not alanı bitiş sayfasının en sıkışık olduğu yerde de durmalı.
+       "Taşmıyor" tek başına yetmez: sığmayan içerik burada büzülerek de
+       gizlenebiliyor, o yüzden alanın ve üç düğmenin gerçek yüksekliğine
+       ve ekranın içinde kaldıklarına ayrıca bakılıyor. */
+    var fnote = d.querySelector("#page-finish .fnote").getBoundingClientRect();
+    ok("not alanı dar ekranda da duruyor (320x568)",
+       fnote.height >= 40 && fnote.bottom <= fp.getBoundingClientRect().bottom + 1,
+       Math.round(fnote.height) + "px, alt " + Math.round(fnote.bottom));
+    ["finish", "share", "discard"].forEach(function(id){
+      var r = d.getElementById(id).getBoundingClientRect();
+      ok(id + " düğmesi ekranın içinde ve ezilmemiş (320x568)",
+         r.height >= 42 && r.bottom <= fp.getBoundingClientRect().bottom + 1,
+         Math.round(r.height) + "px, alt " + Math.round(r.bottom) +
+         " / sayfa " + Math.round(fp.getBoundingClientRect().bottom));
+    });
 
     /* "Taşmıyor" testi tek başına yetmiyor: sayfa flex kolon olduğu
        için sığmayan içerik taşmak yerine kartı eziyordu — sayfa temiz
@@ -299,9 +333,88 @@ function run(){
     })());
 
     f.remove();
+
+    /* ---- 4. seans notu ---- */
+    /* Not alanı gelmeden önce yazılmış bir kaydın taklidi: içinde note
+       yok. Şema büyüdüğünde bu kayıtların hem okunması hem de geçmişte
+       eksiksiz çizilmesi gerekiyor. */
+    var st = JSON.parse(localStorage.getItem("zirh.v1"));
+    st.history.push({
+      ts: Date.now() - 3 * 86400000, person: "erkek", level: 1, day: "A",
+      title: "Tüm vücut", dur: 44,
+      items: [{ n: "Leg Press", done: 3, total: 3, reps: "10-12", kg: "60" }]
+    });
+    localStorage.setItem("zirh.v1", JSON.stringify(st));
+
+    return frame(390, 844);
+  }).then(function(f){
+    var d = f.contentDocument, w = f.contentWindow;
+    var NOT = "Omzum ağrıyordu, ağırlığı düşürdüm";
+
+    ok("eski kayıt notsuz da olsa okunuyor",
+       /Leg Press/.test(d.getElementById("g-list").textContent));
+    ok("notu olmayan kayıt geçmişte yer kaplamıyor",
+       d.querySelectorAll("#g-list .hnote").length === 0,
+       d.querySelectorAll("#g-list .hnote").length + " not kutusu");
+
+    var note = d.getElementById("f-note");
+    ok("bitiş sayfasında not alanı var", !!note);
+    note.value = NOT;
+    note.dispatchEvent(new w.Event("input", { bubbles: true }));
+    ok("not aktif seansa yazıldı",
+       JSON.parse(localStorage.getItem("zirh.v1")).active.erkek["3:B"].note === NOT,
+       JSON.stringify(JSON.parse(localStorage.getItem("zirh.v1")).active.erkek["3:B"]));
+
+    f.remove();
+    return frame(390, 844);
+  }).then(function(f){
+    var d = f.contentDocument, w = f.contentWindow;
+    var NOT = "Omzum ağrıyordu, ağırlığı düşürdüm";
+
+    /* Yarım kalan seansın notu, tıpkı ağırlık gibi, uygulama kapanıp
+       açıldığında yerinde durmalı. */
+    ok("yazılan not yeniden yüklemede duruyor",
+       d.getElementById("f-note").value === NOT, d.getElementById("f-note").value);
+
+    d.getElementById("finish").click();
+    var st = JSON.parse(localStorage.getItem("zirh.v1"));
+    var rec = st.history[st.history.length - 1];
+    ok("not geçmişe kaydedildi", rec.note === NOT, JSON.stringify(rec));
+    ok("kayıt notun yanında setlerini de taşıyor",
+       rec.day === "B" && rec.items.length > 0, JSON.stringify(rec.items));
+    ok("kaydedilen seans aktiften silindi", !st.active.erkek["3:B"]);
+    ok("not alanı kayıttan sonra boşaldı",
+       d.getElementById("f-note").value === "", d.getElementById("f-note").value);
+
+    var cards = d.querySelectorAll("#g-list .hcard");
+    ok("geçmiş kartında not görünüyor",
+       cards.length > 1 && new RegExp(NOT).test(cards[0].textContent),
+       cards.length + " kart");
+    ok("not yalnızca kendi kartında",
+       d.querySelectorAll("#g-list .hnote").length === 1,
+       d.querySelectorAll("#g-list .hnote").length + " not kutusu");
+    ok("eski kayıt yeni alandan etkilenmedi",
+       /Leg Press/.test(cards[1].textContent) && /60 kg/.test(cards[1].textContent),
+       cards[1].textContent);
+
+    /* Boşluktan ibaret not, not sayılmaz: kayda hiç girmemeli. */
+    d.querySelector('#ex-0 .setbtn').click();
+    var n2 = d.getElementById("f-note");
+    n2.value = "   ";
+    n2.dispatchEvent(new w.Event("input", { bubbles: true }));
+    d.getElementById("finish").click();
+
+    var st2 = JSON.parse(localStorage.getItem("zirh.v1"));
+    var rec2 = st2.history[st2.history.length - 1];
+    ok("boş not kayda yazılmıyor", !("note" in rec2), JSON.stringify(rec2));
+    ok("boş not geçmişte yer kaplamıyor",
+       d.querySelectorAll("#g-list .hnote").length === 1,
+       d.querySelectorAll("#g-list .hnote").length + " not kutusu");
+
+    f.remove();
     return frame(1280, 900);
   }).then(function(f){
-    /* ---- 4. masaüstü ---- */
+    /* ---- 5. masaüstü ---- */
     var d = f.contentDocument;
     var btns = d.querySelectorAll(".tabs button");
     var first = btns[0].getBoundingClientRect();

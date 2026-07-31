@@ -131,6 +131,9 @@ export function render(){
   }).join("");
 
   $("page-finish").insertAdjacentHTML("beforebegin", html);
+  /* Not alanı bitiş sayfasının sabit parçası, sayfalarla birlikte
+     yeniden kurulmuyor; gün ya da kişi değişince elle tazeleniyor. */
+  $("f-note").value = s.note || "";
   refresh();
 }
 
@@ -311,6 +314,8 @@ function summaryText(){
     const w = s.kg[i];
     out += "• " + e.name + " — " + n + "/" + e.sets + " set × " + e.reps + (w ? " @ " + w + " kg" : "") + "\n";
   });
+  const note = (s.note || "").trim();
+  if(note) out += "Not: " + note + "\n";
   return any ? out : null;
 }
 
@@ -341,7 +346,7 @@ function finishSession(){
    Geçmişe hiçbir şey yazmaz — kaydedilecek bir seans değil zaten. */
 function discardSession(){
   const s = cur();
-  if(!Object.keys(s.sets).length && !Object.keys(s.kg).length){
+  if(!Object.keys(s.sets).length && !Object.keys(s.kg).length && !s.note){
     goPage(0);
     return;
   }
@@ -389,6 +394,13 @@ export function initWorkout(hooks){
   });
 
   pager.addEventListener("input", ev => {
+    /* Not da seansın içinde tutuluyor: uygulama kapansa, telefon
+       kilitlense de yazılan cümle kaydedene kadar duruyor. */
+    if(ev.target.id === "f-note"){
+      curW().note = ev.target.value;
+      save();
+      return;
+    }
     if(!ev.target.classList.contains("kg")) return;
     curW().kg[ev.target.dataset.kg] = ev.target.value;
     save();
