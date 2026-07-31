@@ -12,7 +12,7 @@ Program kadın ve erkek için ayrı başlangıç ağırlıkları ve ayrı kalori
 
 - **Antrenman** — Her hareket ayrı bir ekran, yatay kaydırarak geçilir. Setleri işaretlersin, ağırlığı girersin, dinlenme sayacı kendiliğinden başlar. Bir sonraki seansta her hareketin altında geçen sefer kaç kilo kaldırdığın yazar.
 - **Öğün** — Profildeki kalori ve protein hedefine göre bir günlük öğün planı kurar. Beğenmezsen başka bir gün önerir.
-- **Geçmiş** — Biten seanslar, en iyi ağırlıklar, hareket bazında ilerleme.
+- **Geçmiş** — Biten seanslar ve hareket başına ağırlık seyri: küçük bir çizgi grafik, en iyi ağırlık, tahmini tek tekrar maksimumu. Bir harekette üç seanstır ağırlık artmıyorsa bunu söyler ve ne yapılacağını yazar.
 - **Rehber** — Ağırlık artırma kuralları, seviyeler arası geçiş, haftalık düzen, kreatin.
 - **Profil** — Boy, kilo, yaş, hedef ve program seviyesi. Günlük makro hedefleri buradan hesaplanır.
 
@@ -49,6 +49,7 @@ css/
 src/
   main.js               bağlantı noktası: kim kimi ne zaman tazeler
   store.js              localStorage, göçler, seans durumu
+  progress.js           geçmişten seyir, tahmini 1RM, plato
   dom.js                küçük yardımcılar
   data/
     exercises.js        hareket kataloğu — teknik, ipuçları, sık hata
@@ -73,6 +74,8 @@ tools/
 ```
 
 **Neden hareket ve program ayrı dosyada:** bir hareketin nasıl yapıldığı değişmez, kaç set yapılacağı programa göre değişir. `exercises.js` ilkini, `programs.js` ikincisini tutar. Aynı hareket beş programda geçebiliyor ve teknik anlatımı tek yerde duruyor.
+
+**Neden ilerleme hesabı ekranın dışında:** `progress.js` geçmişten seyri, tahmini 1RM'i ve platoyu çıkarır ama DOM'a dokunmaz; çizim `screens/history.js`'te kalır. `nutrition.js` ile aynı gerekçe — sayılar tek yerde durursa testte de, ileride başka bir ekranda da aynı cevabı verirler. 1RM Epley formülüyle (`ağırlık × (1 + tekrar / 30)`) ve programdaki en düşük tekrar sayısıyla hesaplanır: kaç tekrar yapıldığı kaydedilmiyor, o yüzden tahmin bilerek düşük tutuluyor.
 
 **Isınma neden ayrı:** ısınma hareketlerinin ağırlığı ve seans kaydı yoktur, o yüzden `exercises.js`'e girmezler. Hangi ısınmanın hangi güne gideceğini programdaki `warm` alanı söyler: itiş gününde omuz açılır, bacak gününde kalça.
 

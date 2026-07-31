@@ -263,6 +263,41 @@ html[data-theme="light"] .heroprog .bar{background:#E3E5EA}
 .stat b{display:block;font-family:var(--display);font-weight:800;font-size:27px;line-height:1;color:var(--accent);font-variant-numeric:tabular-nums}
 .stat span{display:block;font-size:11px;color:var(--text-3);margin-top:4px;letter-spacing:.04em}
 
+/* hareket ilerlemesi — ad, ağırlık seyri, en iyi ve tahmini 1RM */
+.trend{padding:14px 0;border-top:1px solid var(--line-soft)}
+.trend:first-child{padding-top:0;border-top:0}
+.trend:last-child{padding-bottom:0}
+.trendtop{display:flex;align-items:baseline;gap:10px}
+.trendtop .tn{flex:1;min-width:0;font-size:14px;font-weight:600}
+.trendtop .tv{
+  flex:none;font-family:var(--display);font-weight:700;font-size:19px;letter-spacing:.01em;
+  font-variant-numeric:tabular-nums;color:var(--accent);
+}
+/* Genişliği CSS verir, oranı viewBox korur: çizgi kalınlığı da
+   ekranla birlikte büyüdüğü için dar telefonda incelmiyor. */
+.spark{display:block;width:100%;height:auto;margin:8px 0 7px}
+.spark .area{fill:var(--accent-soft)}
+.spark .line{fill:none;stroke:var(--accent);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.spark .pt{fill:var(--surface);stroke:var(--accent);stroke-width:1.4}
+.spark .now{fill:var(--accent)}
+.trend .tsolo{margin:7px 0 6px;font-size:12.5px;color:var(--text-3)}
+.tfoot{
+  display:flex;gap:10px;flex-wrap:wrap;
+  font-size:12px;color:var(--text-3);font-variant-numeric:tabular-nums;
+}
+.tfoot b{color:var(--text-2);font-weight:700}
+.tfoot .t1rm{margin-left:auto}
+/* Plato notu sarı: kırmızı "hata yaptın" der, bu ise bir öneri. */
+.trend .tnote{
+  margin:10px 0 0;padding:9px 12px;border-left:3px solid var(--p15);border-radius:0 10px 10px 0;
+  background:var(--surface-2);font-size:12.5px;line-height:1.45;color:var(--text-2);
+}
+.card .tabout{
+  margin:14px 0 0;padding-top:12px;border-top:1px solid var(--line-soft);
+  font-size:12px;line-height:1.5;color:var(--text-3);
+}
+.card .tabout b{color:var(--text-2)}
+
 .hcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:15px 16px;margin-bottom:10px}
 .hhead{display:flex;align-items:center;gap:9px;margin-bottom:4px}
 .badge{

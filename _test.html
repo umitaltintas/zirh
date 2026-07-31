@@ -299,9 +299,125 @@ function run(){
     })());
 
     f.remove();
+
+    /* ---- 4. geçmiş: ilerleme grafiği, tahmini 1RM, plato ----
+
+       Geçmiş yalnızca gerçek seanslardan birikiyor; testte 40 günlük
+       bir kayıt yığınını doğrudan localStorage'a yazıp uygulamayı
+       onunla açıyoruz. Kayıt şeması store.js'teki buildRecord ile
+       birebir aynı. */
+    var st = JSON.parse(localStorage.getItem("zirh.v1"));
+    var DAY = 86400000, t0 = Date.now() - 40 * DAY;
+    function item(n, kg, reps, done){
+      return { n: n, done: done == null ? 3 : done, total: 3, reps: reps, kg: kg };
+    }
+    function sess(dayNo, items){
+      return { ts: t0 + dayNo * DAY, person: "erkek", level: 1, day: "A",
+               title: "İtiş, çekiş, bacak", dur: 45, items: items };
+    }
+    st.history = [
+      /* Leg Press her seansta artıyor: grafik çizilmeli, plato çıkmamalı.
+         Shrug süreyle ölçülüyor, Plank vücut ağırlığı. */
+      sess(0,  [ item("Leg Press", "40", "10-12"),
+                 item("Shrug", "30", "40 sn"),
+                 item("Plank", "", "20-40 sn") ]),
+      sess(3,  [ item("Leg Press", "45", "10-12") ]),
+      sess(6,  [ item("Leg Press", "50", "10-12") ]),
+      /* Lat Pulldown üç seanstır aynı ağırlıkta, tekrar da artmıyor. */
+      sess(8,  [ item("Lat Pulldown", "35", "10-12") ]),
+      sess(11, [ item("Lat Pulldown", "35", "10-12") ]),
+      sess(14, [ item("Lat Pulldown", "35", "10-12") ]),
+      /* Face Pull aynı ağırlıkta ama hedef tekrar yükseliyor — plato değil. */
+      sess(9,  [ item("Face Pull", "15", "10-12") ]),
+      sess(12, [ item("Face Pull", "15", "12-15") ]),
+      sess(15, [ item("Face Pull", "15", "15") ]),
+      /* Hip Thrust tek kayıt: çizilecek bir seyri yok. */
+      sess(16, [ item("Hip Thrust", "60", "10-12") ])
+    ];
+    localStorage.setItem("zirh.v1", JSON.stringify(st));
+
+    return frame(390, 844);
+  }).then(function(f){
+    var d = f.contentDocument, w = f.contentWindow;
+    d.getElementById("tab-gecmis").click();
+
+    function row(name){
+      var hit = null;
+      d.querySelectorAll("#g-pr .trend").forEach(function(el){
+        if(el.querySelector(".tn").textContent === name) hit = el;
+      });
+      return hit;
+    }
+
+    ok("geçmiş özeti 10 seans sayıyor", d.getElementById("g-total").textContent === "10",
+       d.getElementById("g-total").textContent);
+    ok("ağırlıklı 5 hareket listelendi", d.querySelectorAll("#g-pr .trend").length === 5,
+       d.querySelectorAll("#g-pr .trend").length + " satır");
+    ok("vücut ağırlığı hareketi listeye girmiyor", !row("Plank"));
+
+    /* En son çalışılan hareket başta: insan en son yaptığı işi arıyor. */
+    ok("en son çalışılan hareket başta",
+       d.querySelector("#g-pr .trend .tn").textContent === "Hip Thrust",
+       d.querySelector("#g-pr .trend .tn").textContent);
+
+    /* ---- grafik ---- */
+    ok("üç kayıtlı hareketler grafik çiziyor", d.querySelectorAll("#g-pr .spark").length === 3,
+       d.querySelectorAll("#g-pr .spark").length + " grafik");
+    var lp = row("Leg Press");
+    ok("grafik her kayıt için bir nokta koyuyor",
+       lp.querySelector(".spark .line").getAttribute("points").split(" ").length === 3,
+       lp.querySelector(".spark .line").getAttribute("points"));
+    ok("grafiğin sesli okuyucu karşılığı var",
+       /40, 45, 50 kg/.test(lp.querySelector(".spark").getAttribute("aria-label")),
+       lp.querySelector(".spark").getAttribute("aria-label"));
+    ok("grafik ekran genişliğine uyuyor",
+       lp.querySelector(".spark").getBoundingClientRect().width > 200,
+       Math.round(lp.querySelector(".spark").getBoundingClientRect().width) + "px");
+    /* Sabit renk kodu yazılmadığının kanıtı: çizgi, temanın vurgu
+       rengini kullanan yazıyla aynı renge çözülüyor. */
+    ok("grafik temanın vurgu rengini kullanıyor",
+       w.getComputedStyle(lp.querySelector(".spark .line")).stroke ===
+       w.getComputedStyle(lp.querySelector(".tv")).color,
+       w.getComputedStyle(lp.querySelector(".spark .line")).stroke + " vs " +
+       w.getComputedStyle(lp.querySelector(".tv")).color);
+
+    /* Tek kayıtta çizecek seyir yok; boş kutu bırakmak yerine söylüyor. */
+    var ht = row("Hip Thrust");
+    ok("tek kayıtlı hareket grafik çizmiyor", !ht.querySelector(".spark"));
+    ok("tek kayıtlı hareket durumu açıklıyor", !!ht.querySelector(".tsolo"));
+
+    ok("en iyi ağırlık grafiğin altında kaldı",
+       /en iyi 50 kg/.test(lp.querySelector(".tfoot").textContent),
+       lp.querySelector(".tfoot").textContent);
+
+    /* ---- tahmini 1RM ---- */
+    /* Epley: 50 × (1 + 10/30) = 66,7 → 67. Aralığın alt ucu (10)
+       kullanılıyor, tahmin şişmesin. */
+    ok("1RM Epley ile hesaplandı", /1RM ≈ 67 kg/.test(lp.querySelector(".tfoot").textContent),
+       lp.querySelector(".tfoot").textContent);
+    ok("1RM'in tahmin olduğu yazıyor",
+       !!d.querySelector("#g-pr .tabout") && /tahmini/.test(d.querySelector("#g-pr .tabout").textContent));
+    /* "40 sn" bir tekrar sayısı değil; Epley'e sokulacak bir şey yok.
+       Katalogda şu an ağırlıklı-süreli bir hareket bulunmuyor ama alan
+       serbest metin, koruma yerinde dursun. */
+    ok("süreyle ölçülen harekette 1RM yok", !row("Shrug").querySelector(".t1rm"),
+       row("Shrug").textContent);
+
+    /* ---- plato ---- */
+    var lat = row("Lat Pulldown");
+    ok("üç seans aynı ağırlıkta kalınca plato deniyor", !!lat.querySelector(".tnote"));
+    ok("plato notu ne yapılacağını yazıyor",
+       /tekrar fazlasını dene/.test(lat.querySelector(".tnote").textContent) &&
+       /32,5 kg'a inip/.test(lat.querySelector(".tnote").textContent),
+       lat.querySelector(".tnote").textContent);
+    ok("ağırlık artıyorsa plato denmiyor", !lp.querySelector(".tnote"));
+    ok("tekrar artıyorsa plato denmiyor", !row("Face Pull").querySelector(".tnote"),
+       row("Face Pull").textContent);
+
+    f.remove();
     return frame(1280, 900);
   }).then(function(f){
-    /* ---- 4. masaüstü ---- */
+    /* ---- 5. masaüstü ---- */
     var d = f.contentDocument;
     var btns = d.querySelectorAll(".tabs button");
     var first = btns[0].getBoundingClientRect();
