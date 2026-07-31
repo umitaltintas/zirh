@@ -187,6 +187,14 @@ html[data-theme="light"] .heroprog .bar{background:#E3E5EA}
   background:var(--surface);border:1.5px dashed var(--line);border-radius:14px;
   font-size:13.5px;color:var(--text-3);
 }
+/* plaka dizilimi — arayan bulur, aramayanın gözüne girmez.
+   Bar dışındaki hareketlerde metin boş kalıyor; :empty satırı tamamen
+   kaldırıyor ki kutunun altında sebepsiz boşluk durmasın. */
+.plates{
+  margin-top:6px;font-size:11.5px;line-height:1.3;color:var(--text-3);
+  font-variant-numeric:tabular-nums;
+}
+.plates:empty{display:none}
 
 .setbtn{
   width:var(--tap);height:var(--tap);border-radius:12px;
@@ -218,6 +226,24 @@ html[data-theme="light"] .heroprog .bar{background:#E3E5EA}
 }
 
 /* ---------- panel içeriği ---------- */
+
+/* ısınma setleri — anlatımın üstünde durur, çünkü panel bara plaka
+   dizmeden hemen önce açılıyor: önce sayı, sonra anlatım. */
+.ramp{margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.rampsets{list-style:none;margin:0;padding:0}
+.rampsets li{
+  display:flex;align-items:baseline;gap:9px;
+  padding:7px 0;border-bottom:1px solid var(--line-soft);
+}
+.rampsets li:last-child{border-bottom:0;padding-bottom:0}
+.rampsets b{
+  font-family:var(--display);font-weight:700;font-size:18px;color:var(--accent);
+  min-width:64px;letter-spacing:.01em;font-variant-numeric:tabular-nums;
+}
+.rampsets i{font-style:normal;font-size:13.5px;color:var(--text-2)}
+.rampsets span{margin-left:auto;padding-left:10px;font-size:12px;color:var(--text-3);text-align:right}
+.ramp .note{margin:11px 0 0}
+
 .exbody{padding:0}
 .exbody h4{margin:13px 0 6px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-3);font-weight:700}
 .exbody h4:first-child{margin-top:0}
@@ -459,10 +485,19 @@ html[data-theme="light"] .gaugebar{background:#E3E5EA}
   .pmeta div{padding:8px 11px}
   .pmeta b{font-size:19px}
   .plast{margin-top:8px;font-size:12.5px}
-  .pctl{margin-top:10px}
+  /* Dizilim satırının yerini kontrol blokları arasındaki boşluktan
+     alıyoruz: 320x568'de sayfa kaydırmadan sığması buna bağlı. */
+  .pctl{margin-top:8px}
   .plabel{margin-bottom:5px}
   .kgbig{height:50px}
   .kgbig .kg{font-size:25px}
+  /* Kısa ekranda satırın ikinciye düşmesi set düğmelerini aşağı itiyor.
+     Çok ağır ve tam tutturulamayan bir kiloda satır uzayabilir; o zaman
+     taşmasındansa sonu kırpılsın — dizilim baştan okunuyor. */
+  .plates{
+    margin-top:4px;font-size:10.5px;line-height:1.25;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
   .setrow-big .setbtn{height:52px;font-size:20px}
   .techrow{margin-top:9px;padding:11px 15px}
 }

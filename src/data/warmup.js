@@ -118,7 +118,7 @@ export const WARM_MOVES = {
     noVideo: true,
     why: "Genel ısınma vücudu ısıtır, bu set ise sinir sistemine o günkü hareketin yolunu gösterir. Asıl ağırlığa geçişin köprüsü.",
     cues: [
-      "Çalışacağın ağırlığın yarısından azıyla yap.",
+      "Çalışacağın ağırlığın yarısından azıyla başla.",
       "Tekrarları hızlı değil, teknik düşünerek geçir.",
       "Bu set kayda girmez; sayaç da başlatmaz."
     ],
@@ -193,4 +193,39 @@ export function cooldown(){
 
 export function warmMove(id){
   return WARM_MOVES[id] || COOL_MOVES[id] || null;
+}
+
+/* Isınma basamakları: çalışma ağırlığının kabaca %40, %60 ve %80'i,
+   azalan tekrarla. Ağırlık yükselirken tekrar düşer; amaç yormak değil
+   sinir sistemini o günkü yüke alıştırmak. */
+const RAMP = [
+  { pct: 0.40, reps: 8 },
+  { pct: 0.60, reps: 5 },
+  { pct: 0.80, reps: 3 }
+];
+
+/* work : çalışma ağırlığı
+   step : hareketin kademesi — yüzde hesabı 24,4 gibi sayılar üretiyor,
+          oysa salonda dizilebilen değerler bu kademenin katları
+   min  : altına inilemeyecek taban (bar hareketinde barın kendi kilosu)
+
+   Aşağı yuvarlanır: ısınma seti yanılacaksa hafiften yanılmalı.
+   Çalışma ağırlığına ulaşan ya da bir öncekini tekrarlayan basamak
+   elenir — hafif ağırlıkta üç basamak da aynı sayıya düşüyor, o zaman
+   tek satır göstermek doğru olan. */
+export function warmupSets(work, step, min){
+  const inc = step > 0 ? step : 2.5;
+  const base = min > 0 ? min : inc;
+  if(!(work > base)) return [];
+
+  const out = [];
+  RAMP.forEach(r => {
+    /* 60 × 0,6 kayan noktada 35,999… çıkabiliyor; kırıntıyı ekleyip
+       aşağı yuvarlamanın bir kademe kaymasını engelliyoruz. */
+    const kg = Math.max(base, Math.floor((work * r.pct + 1e-6) / inc) * inc);
+    if(kg >= work) return;
+    if(out.length && out[out.length - 1].kg === kg) return;
+    out.push({ kg, reps: r.reps });
+  });
+  return out;
 }

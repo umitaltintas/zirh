@@ -18,6 +18,7 @@ const SHELL = [
   "./src/store.js",
   "./src/progress.js",
   "./src/data/exercises.js",
+  "./src/data/plates.js",
   "./src/data/programs.js",
   "./src/data/videos.js",
   "./src/data/warmup.js",
