@@ -1,0 +1,85 @@
+# Yayın hattı: main'e her push'ta derler, testleri derlenmiş sürümün
+# üstünde koşar, ancak geçerse Pages'a basar.
+#
+# Testin derlemeden SONRA koşması bilinçli. Derleme, kaynakta olmayan
+# bir hatayı üretebilen tek adım — 22 modülü tek dosyada toplar,
+# değişken adlarını kısaltır, service worker'ı yeniden yazar. O yüzden
+# doğrulanması gereken şey kaynak değil, tam olarak kullanıcıya gidecek
+# dosyalar.
+
+name: Yayınla
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Aynı anda iki yayın olmasın; ama sıradakini iptal de etme, çünkü
+# atlanan bir commit sessizce yayınlanmamış kalır.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  yayinla:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      # npm ci: kilit dosyası ne diyorsa o kurulur. Yayının bir sabah
+      # kendiliğinden değişmesini engelleyen şey bu.
+      - run: npm ci
+
+      - name: Derle
+        run: npm run build
+
+      # Runner imajında Google Chrome kurulu geliyor. Gelmediği gün
+      # testler sessizce atlanmasın diye puppeteer'ın kendi indiricisine
+      # düşülüyor — yavaş ama çalışır.
+      - name: Chrome'u bul
+        id: chrome
+        run: |
+          if [ -x /usr/bin/google-chrome ]; then
+            echo "path=/usr/bin/google-chrome" >> "$GITHUB_OUTPUT"
+          else
+            npx --yes puppeteer browsers install chrome > /tmp/chrome.log
+            echo "path=$(tail -1 /tmp/chrome.log | awk '{print $NF}')" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Sunucu alt dizinden servis ediyor: uygulama alan adının kökünde
+      # değil, /zirh/ altında yaşıyor. Testler de oradan koşsun ki göreli
+      # yol hatası yayına kadar gizlenmesin.
+      - name: Testler (derlenmiş sürümün üstünde)
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+        run: |
+          mkdir -p .pagesroot && ln -s "$PWD/dist" .pagesroot/zirh
+          python3 -m http.server 8765 --directory .pagesroot &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:8765/zirh/_test.html > /dev/null && break
+            sleep 1
+          done
+          node tools/run-tests.mjs http://localhost:8765/zirh/_test.html
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - id: deploy
+        uses: actions/deploy-pages@v4

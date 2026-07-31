@@ -38,10 +38,13 @@ Boy, kilo, yaş, setler, ağırlıklar ve seans geçmişi yalnızca tarayıcın�
 
 ## Yapı
 
-Derleme adımı yok, paket yöneticisi yok. Tarayıcı ES modüllerini olduğu gibi yükler; `git push` yapmak yayınlamaya yeter.
+Kaynak kod, tarayıcının doğrudan çalıştırabileceği ES modülleri: çerçeve yok, derleyici sözdizimi yok, ürettiği kodu okumak için bir araca ihtiyaç duyulmuyor. Yayına giderken Vite bunları sıkıştırıp tek dosyada topluyor ve service worker'ı üretiyor. `git push` yapmak yine yayınlamaya yetiyor — derlemeyi GitHub Actions yapıyor, testler de yayından önce derlenmiş sürümün üstünde koşuyor.
+
+Kod içindeki yorumlar bilerek uzun: bir formülün neden alt uçtan hesaplandığı, hangi CSS tuzağının neyi bozduğu yalnızca orada yazılı. Yayınlanan sürümde hiçbiri yok, kaynakta hepsi duruyor.
 
 ```
 index.html              uygulama kabuğu — yalnızca iskelet
+vite.config.js          yayın yapılandırması, service worker kuralları
 css/
   base.css              renk dili, tipografi, ortak parçalar
   shell.css             başlık, alt gezinme, panel, sayaç
@@ -68,11 +71,16 @@ src/
     history.js          seans kayıtları
     profile.js          ölçüler, hedef, seviye seçimi
     meals.js            günlük öğün planı
-sw.js                   çevrimdışı önbellek
+public/                 olduğu gibi kopyalananlar: manifest, ikonlar
 _test.html              tarayıcıda açılan gerileme testleri
 tools/
+  run-tests.mjs         testleri başsız tarayıcıda koşturur
   video-check.sh        video kimlikleri hâlâ ayakta mı, yeterli mi
+.github/workflows/
+  deploy.yml            derle → test et → yayınla
 ```
+
+**Service worker neden elle yazılmıyor:** eskiden `sw.js` depoda duruyordu ve içinde önbelleğe alınacak dosyaların listesi vardı. Yeni bir modül eklendiğinde o listeye de yazmak gerekiyordu; unutulduğu gün uygulama çevrimiçiyken sorunsuz görünüp çevrimdışı bozuluyordu — fark edilmesi en zor hata türü. Artık listeyi Workbox derleme anında dosya ağacından üretiyor. Kayıt kodu yine bizde (`main.js`): yeni sürüm hazır olduğunda seans ortasındaysan sayfa yenilenmiyor, "seanstan sonra geçilecek" deyip bekliyor.
 
 **Neden hareket ve program ayrı dosyada:** bir hareketin nasıl yapıldığı değişmez, kaç set yapılacağı programa göre değişir. `exercises.js` ilkini, `programs.js` ikincisini tutar. Aynı hareket beş programda geçebiliyor ve teknik anlatımı tek yerde duruyor.
 
@@ -83,16 +91,22 @@ tools/
 ## Geliştirme
 
 ```
-python3 -m http.server 8765
+npm install
+npm run dev
 ```
 
-Service worker'ın çalışması için `file://` değil `http://` üzerinden açılmalı.
-
-Testler: `http://localhost:8765/_test.html`. Gerçek bir iframe içinde, dört farklı ekran boyutunda çalışır — görünüm bindirmesi, sayfa taşması, seviye değişimi, seans kalıcılığı, plaka dizilimi, ısınma setleri, dinlenme sayacı, seans notu, geçmişteki ağırlık seyri, öğün planı ve masaüstü hizalaması.
+Testler: `http://localhost:5173/_test.html`. Gerçek bir iframe içinde, dört farklı ekran boyutunda çalışır — görünüm bindirmesi, sayfa taşması, seviye değişimi, seans kalıcılığı, plaka dizilimi, ısınma setleri, dinlenme sayacı, seans notu, geçmişteki ağırlık seyri, öğün planı ve masaüstü hizalaması.
 
 Dar ekranda (320×568) yalnızca "taşmıyor" demek yetmiyor: `.page` bir flex sütunu olduğu için sığmayan içerik taşmak yerine büzülüyor ve `scrollHeight` denetiminden sessizce geçiyor. O yüzden kritik parçaların gerçek yüksekliğine ve ekranın içinde kalıp kalmadıklarına ayrıca bakılıyor.
 
-Değişiklikten sonra `sw.js` içindeki `CACHE` sürümü artırılmalı; yoksa eski dosyalar önbellekte kalır.
+Yayınlanan sürümü yerelde denemek için:
+
+```
+npm run build && npm run preview
+npm test http://localhost:4173/_test.html
+```
+
+Testleri derlenmiş sürümün üstünde koşturmak önemli: derleme, kaynakta olmayan bir hatayı üretebilen tek adım. CI'ın yayından önce yaptığı da tam olarak bu, üstelik uygulamanın gerçekte yaşadığı `/zirh/` alt dizininden.
 
 Videolar zamanla çürür — kanal kapanır, video kaldırılır. Ara sıra:
 
