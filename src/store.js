@@ -20,9 +20,9 @@ export const db = {
   person: "erkek",
   theme: null,
   schema: 2,
-  active: {},    /* [person]["<seviye>:<gün>"] = {date, sets, kg, startedAt} */
+  active: {},    /* [person]["<seviye>:<gün>"] = {date, sets, kg, note, startedAt} */
   profile: {},   /* [person] = {h, w, goal, level} */
-  history: []    /* [{ts, person, level, day, title, dur, items}] */
+  history: []    /* [{ts, person, level, day, title, dur, items, note?}] */
 };
 
 export function load(){
@@ -85,6 +85,11 @@ function migrateLevels(){
   db.schema = 2;
 }
 
+/* Seans notu sonradan geldi ama şema sürümü artmadı: alan isteğe bağlı,
+   notu olmayan eski kayıt olduğu gibi geçerli ve geçmişte notsuz çizilir.
+   Sürüm yalnızca eski kaydın yeniden yazılması gerektiğinde artar —
+   boş bir göç yazmak sürümü de anlamsızlaştırır. */
+
 export function save(){
   try{ localStorage.setItem(KEY, JSON.stringify(db)); }catch(e){}
 }
@@ -115,7 +120,7 @@ export const todayStr = () =>
   String(new Date().getMonth() + 1).padStart(2, "0") + "-" +
   String(new Date().getDate()).padStart(2, "0");
 
-const blank = () => ({ date: todayStr(), sets: {}, kg: {}, startedAt: 0 });
+const blank = () => ({ date: todayStr(), sets: {}, kg: {}, note: "", startedAt: 0 });
 
 export function session(person, lvl, dayKey, create){
   if(!db.active[person]) db.active[person] = {};
@@ -142,7 +147,7 @@ export function buildRecord(person, day, s){
     return { n: e.name, done, total: e.sets, reps: e.reps, kg: (s.kg[i] || "") };
   }).filter(it => it.done > 0);
 
-  return {
+  const rec = {
     ts: s.startedAt || new Date(s.date + "T18:00:00").getTime(),
     person,
     level: day.program.id,
@@ -150,6 +155,13 @@ export function buildRecord(person, day, s){
     title: day.short,
     items
   };
+
+  /* Boş not kayda hiç girmesin: geçmişte yer kaplamadığı gibi, notsuz
+     kayıtla eskiden yazılmış kayıt da birebir aynı biçimde kalıyor. */
+  const note = String(s.note || "").trim();
+  if(note) rec.note = note;
+
+  return rec;
 }
 
 /* Bir seans gece yarısını geçip açık kaldıysa kaybetme: geçmişe al. */

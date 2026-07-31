@@ -146,6 +146,8 @@ function renderList(mine){
         '<div class="hitem"><span class="n">' + esc(it.n) + '</span>' +
         '<span class="v">' + it.done + '/' + it.total + (it.kg ? " · " + esc(it.kg) + " kg" : "") + '</span></div>'
       ).join("") +
+      /* Notu olmayan kayıt — eski kayıtların hepsi öyle — hiç satır açmaz. */
+      (h.note ? '<p class="hnote">' + esc(h.note) + '</p>' : '') +
     '</div>';
   }).join("");
 }

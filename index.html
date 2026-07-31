@@ -98,9 +98,20 @@
         <h2 class="pname" id="f-title">Seansı kaydet</h2>
         <p class="palt">Kayıt telefonunda saklanır — bir sonraki seansta hangi ağırlıkla çalıştığın karşına çıkar.</p>
 
-        <div class="pmeta" style="margin-top:16px">
+        <div class="pmeta">
           <div><b id="f-sets">0/0</b><span>Set</span></div>
           <div><b id="f-ex">0/0</b><span>Hareket</span></div>
+        </div>
+
+        <!-- Seans notu. "Neden bugün hafif kaldım" sorusunun cevabı bir
+             hafta sonra hatırlanmıyor; omuz ağrısı da uykusuzluk da
+             kayıttaki kiloyu açıklıyor. Tek satır: bu sayfada kaydırma
+             yok, üç düğme her zaman ekranda kalmalı. -->
+        <div class="fnote">
+          <i aria-hidden="true">Not</i>
+          <input id="f-note" type="text" maxlength="140" autocomplete="off"
+                 aria-label="Seans notu, isteğe bağlı"
+                 placeholder="Omzum ağrıyordu, uykusuzdum…">
         </div>
 
         <!-- Soğuma listesi panelde: bitiş sayfasında üç düğmenin

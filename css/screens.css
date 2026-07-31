@@ -212,6 +212,32 @@ html[data-theme="light"] .heroprog .bar{background:#E3E5EA}
 .delta.up{background:rgba(31,169,113,.16);color:var(--p10)}
 .delta.down{background:rgba(224,52,74,.14);color:var(--p25)}
 
+/* bitiş sayfası — sayılar ve seans notu */
+#page-finish .pmeta{margin-top:16px}
+/* Not alanı esnemesin: içindeki tek satırlık girdi 18 pikselde de
+   "sığdığı" için yer daralınca kutu o boya kadar eziliyor, sayfa da
+   sığmış gibi görünüyordu. Düğmeler aynı sözü veriyor — dar ekranda
+   ölçülen budur: üçü birden ekranda kalmalı. */
+#page-finish .btn,.fnote{flex:none}
+.fnote{
+  display:flex;align-items:center;gap:10px;margin-top:12px;
+  background:var(--surface);border:1.5px solid var(--line);border-radius:14px;
+  height:48px;padding:0 14px;
+}
+.fnote:focus-within{border-color:var(--accent)}
+/* Etiket satır içinde duruyor: üstüne ayrı bir başlık satırı koymak
+   dar ekranda düğmelerden yer çalıyordu. */
+.fnote i{
+  flex:none;font-style:normal;font-size:10.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--text-3);font-weight:700;
+}
+.fnote input{
+  flex:1;min-width:0;border:0;background:transparent;padding:0;
+  font-size:14px;line-height:1.3;
+}
+.fnote input:focus{outline:0}
+.fnote input::placeholder{color:var(--text-3)}
+
 .techrow{
   margin-top:12px;width:100%;border:1px solid var(--line);background:var(--surface);
   border-radius:13px;padding:13px 15px;cursor:pointer;
@@ -340,6 +366,14 @@ html[data-theme="light"] .heroprog .bar{background:#E3E5EA}
 .hitem{display:flex;gap:10px;font-size:13.5px;padding:5px 0;color:var(--text-2)}
 .hitem .n{flex:1}
 .hitem .v{font-variant-numeric:tabular-nums;font-weight:600;color:var(--text);white-space:nowrap}
+/* Seans notu — sayı satırlarının arasına karışmasın diye kartın
+   altında, kendi çizgisiyle. Notu olmayan kayıtta hiç basılmaz. */
+.hnote{
+  margin:9px 0 0;padding-top:9px;border-top:1px solid var(--line-soft);
+  font-size:13px;line-height:1.45;color:var(--text-2);
+}
+.hnote::before{content:"“";color:var(--text-3);font-weight:700}
+.hnote::after{content:"”";color:var(--text-3);font-weight:700}
 
 /* ============================================================
    PROFİL
@@ -500,6 +534,12 @@ html[data-theme="light"] .gaugebar{background:#E3E5EA}
   }
   .setrow-big .setbtn{height:52px;font-size:20px}
   .techrow{margin-top:9px;padding:11px 15px}
+  /* Bitiş sayfasında not alanına yer açılıyor. Giden cümle kaydın
+     nerede durduğunu anlatıyordu — aynı bilgi Rehber'de ve Profil'de
+     de var; notun ise başka yeri yok. */
+  #page-finish .palt{display:none}
+  #page-finish .pmeta{margin-top:11px}
+  .fnote{height:44px;margin-top:9px}
 }
 /* Isınma listesi genel bakışın en esnek parçası: dört satırı da
    göstermek istiyoruz ama sayfa kaydırmasın. Bu yüzden hero'nun
@@ -522,6 +562,10 @@ html[data-theme="light"] .gaugebar{background:#E3E5EA}
   .hero h1{font-size:28px;margin:0 0 6px}
   .hero .meta{display:none}
   .heroprog{margin-top:0;padding-top:11px}
+  /* Bitiş sayfasının üst etiketi de gider: hemen altındaki başlık ve
+     yeşil düğme zaten "Seansı kaydet" diyor. Kazanılan yer nota ve
+     düğmelerin nefes payına gidiyor. */
+  #page-finish>.plabel{display:none}
 }
 @media (min-width:520px){
   .hero h1{font-size:44px}

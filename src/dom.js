@@ -15,6 +15,12 @@ export const numOr0 = v => {
   return isNaN(n) ? 0 : n;
 };
 
+/* Titreşim — iPhone'da HİÇ çalışmaz. Safari navigator.vibrate'i hiçbir
+   iOS sürümünde uygulamadı, dolayısıyla bu satır orada sessizce hiçbir şey
+   yapmaz. Android'de dokunuşu tatlandıran bir süs olarak kalsın, ama
+   kaçırılmaması gereken hiçbir olay yalnızca buna emanet edilmesin:
+   dinlenme sayacının bitişi gibi anlar sesle ve ekrandaki değişimle de
+   bildirilmeli (bkz. src/ui/timer.js). */
 export const buzz = ms => { if(navigator.vibrate) navigator.vibrate(ms); };
 
 let toastT = null;
