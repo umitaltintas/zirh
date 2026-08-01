@@ -42,10 +42,13 @@ const freeWeight = name => {
 /* "10-12" → 10 · "10 / taraf" → 10 · "20-40 sn" ve
    "yapabildiğin kadar" → null
 
-   Aralığın ALT ucu alınıyor: kaç tekrar yapıldığı kaydedilmiyor,
-   elimizde yalnızca programın hedefi var. Alt uçtan hesaplamak
-   tahmini olduğundan az gösterir — olmayan bir gücü vadetmekten
-   iyidir. Süreyle ölçülen hareketlerde tekrar diye bir şey yok. */
+   Aralığın ALT ucu alınıyor: bu, kişinin ne yaptığını söylemediği
+   durumda kullanılan tahmin. Alt uçtan hesaplamak tahmini olduğundan
+   az gösterir — olmayan bir gücü vadetmekten iyidir. Süreyle ölçülen
+   hareketlerde tekrar diye bir şey yok.
+
+   Gerçekten yapılan tekrar girildiyse bu fonksiyona hiç gelinmiyor;
+   bkz. topSet. */
 export function repsOf(text){
   const s = String(text == null ? "" : text);
   if(/sn/i.test(s)) return null;
@@ -84,7 +87,12 @@ function plateauOf(pts){
   if(pts.length < 3) return false;
   const a = pts[pts.length - 3], b = pts[pts.length - 2], c = pts[pts.length - 1];
   if(b.kg > a.kg || c.kg > a.kg) return false;
-  if((c.reps || 0) > (a.reps || 0)) return false;
+  /* Tekrar sayıları ancak aynı kaynaktan geliyorsa karşılaştırılabilir:
+     ikisi de girilmiş ya da ikisi de programın hedefinden tahmin
+     edilmiş olmalı. Biri gerçek biri tahminse artış, kişinin daha çok
+     tekrar yapmasından da tahminin düşük tutulmasından da gelebilir —
+     ayırt edilemeyen bir artışa bakıp plato kararını değiştirmiyoruz. */
+  if(a.said === c.said && (c.reps || 0) > (a.reps || 0)) return false;
   if(c.done > a.done) return false;
   return true;
 }
@@ -111,6 +119,31 @@ function bestOneRepMax(name, pts){
    ne olduğu bilinmiyor. Noktalar eskiden yeniye sıralı — grafiğin
    ekseni zaman. Listenin kendisi ise en son çalışılan hareket başta
    olacak şekilde sıralanır: insan en son yaptığı işi arıyor. */
+/* Bir kaydın en ağır seti ve o setin tekrarı.
+
+   Kayıtta set dökümü varsa (setler ayrıştığı için yazılmış) en ağır
+   set oradan seçiliyor ve tekrarı GERÇEKTEN yapılan sayı oluyor.
+   Yoksa eski davranış: düz kg alanı ve programın hedef tekrarı.
+
+   said, sayının nereden geldiğini söylüyor. Plato tespiti buna
+   bakıyor: tahmin edilmiş iki tekrar sayısını karşılaştırmak,
+   ikisi de aynı programdan geldiği için hiçbir şey öğretmez. */
+function topSet(it){
+  const kg = numOr0(it.kg);
+  if(!Array.isArray(it.sets) || !it.sets.length){
+    return { kg, reps: repsOf(it.reps), said: false };
+  }
+  let best = null, bestKg = -1;
+  it.sets.forEach(d => {
+    const v = numOr0(d.kg);
+    if(v > bestKg){ bestKg = v; best = d; }
+  });
+  if(!best) return { kg, reps: repsOf(it.reps), said: false };
+  return best.reps != null
+    ? { kg: bestKg || kg, reps: best.reps, said: true }
+    : { kg: bestKg || kg, reps: repsOf(it.reps), said: false };
+}
+
 export function trends(history, person){
   const bag = {};
 
@@ -118,10 +151,11 @@ export function trends(history, person){
     .filter(h => h.person === person)
     .sort((a, b) => a.ts - b.ts)
     .forEach(h => (h.items || []).forEach(it => {
-      const kg = numOr0(it.kg);
-      if(!kg) return;
+      const t = topSet(it);
+      if(!t.kg) return;
       if(!bag[it.n]) bag[it.n] = [];
-      bag[it.n].push({ ts: h.ts, kg, reps: repsOf(it.reps), done: it.done, total: it.total });
+      bag[it.n].push({ ts: h.ts, kg: t.kg, reps: t.reps, said: t.said,
+                       done: it.done, total: it.total });
     }));
 
   return Object.keys(bag).map(name => {

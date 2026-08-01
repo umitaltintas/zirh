@@ -20,6 +20,18 @@ function frame(w, h){
   });
 }
 
+function bekle(ms){
+  return new Promise(function(res){ setTimeout(res, ms); });
+}
+
+/* Kaç gün önce olduğu bilinen bir günü, kayıtların kullandığı
+   "YYYY-AA-GG" biçiminde yazar. */
+function gunStr(oncekiGun){
+  var t = new Date(Date.now() - oncekiGun * 86400000);
+  return t.getFullYear() + "-" + String(t.getMonth() + 1).padStart(2, "0") +
+         "-" + String(t.getDate()).padStart(2, "0");
+}
+
 function visibleViews(d){
   var ids = ["antrenman","ogun","gecmis","rehber","profil"], on = [];
   ids.forEach(function(v){
@@ -853,9 +865,433 @@ function run(){
        !/en iyin/.test(toastEl.textContent), toastEl.textContent);
 
     f.remove();
+
+    /* ---- 8. set başına ağırlık ve yapılan tekrar ----
+
+       Önceki basamağın yarım seansı ve geçmişi siliniyor: burada
+       sınanan şey boş bir seansın nasıl kaydedildiği. */
+    var st3 = JSON.parse(localStorage.getItem("zirh.v1"));
+    st3.active = {};
+    st3.history = [];
+    localStorage.setItem("zirh.v1", JSON.stringify(st3));
+
+    return frame(390, 844);
+  }).then(function(f){
+    var d = f.contentDocument, w = f.contentWindow;
+    d.querySelectorAll('#days [data-day]')[0].click();
+    d.getElementById("begin").click();
+
+    var oku = function(){ return JSON.parse(localStorage.getItem("zirh.v1")); };
+    var adj = function(){ return oku().active.erkek["1:A"].adj; };
+
+    function agirlik(pg, v){
+      var i = pg.querySelector("[data-kg]");
+      i.value = v;
+      i.dispatchEvent(new w.Event("input", { bubbles: true }));
+    }
+    function alan(sel, x, v){
+      var el = d.querySelectorAll("#sheet-body [" + sel + "]")[x];
+      el.value = v;
+      el.dispatchEvent(new w.Event("input", { bubbles: true }));
+    }
+
+    var pg = d.getElementById("ex-0");
+    agirlik(pg, "60");
+    pg.querySelectorAll(".setbtn").forEach(function(b){ b.click(); });
+
+    var isaret = function(){
+      return Array.prototype.map.call(pg.querySelectorAll(".setbtn"), function(b){
+        return b.classList.contains("adj") ? "1" : "0";
+      }).join("");
+    };
+
+    ok("set satırında düzenle düğmesi var", !!pg.querySelector("[data-edit]"));
+    pg.querySelector("[data-edit]").click();
+    ok("panelde her set için bir satır var",
+       d.querySelectorAll("#sheet-body .setedit li").length === 3,
+       d.querySelectorAll("#sheet-body .setedit li").length + " satır");
+
+    /* Panel açmak bir şey söylemek değil: dokunulmamış alanlar
+       "programdaki gibi" demek ve kayda hiç girmemeli. */
+    ok("panel açmak tek başına sapma yazmıyor",
+       !Object.keys(adj()).length, JSON.stringify(adj()));
+
+    alan("data-akg", 2, "55");
+    alan("data-arep", 2, "6");
+    ok("sapan set ağırlığıyla ve tekrarıyla kaydediliyor",
+       adj()["0-2"] && adj()["0-2"].kg === "55" && adj()["0-2"].reps === 6,
+       JSON.stringify(adj()));
+    ok("sapmayan setler kayda girmiyor", Object.keys(adj()).length === 1,
+       JSON.stringify(adj()));
+    ok("yalnızca sapan setin düğmesi işaretli", isaret() === "001", isaret());
+
+    /* Sıfır tekrar diye bir set yok: yanlış yazılan değer kaydı
+       bozmak yerine yok sayılıyor. */
+    alan("data-arep", 1, "0");
+    ok("geçersiz tekrar yok sayılıyor", !adj()["0-1"], JSON.stringify(adj()));
+
+    /* Alanı boşaltmak sıfır demek değil, "programdaki gibi" demek. */
+    alan("data-arep", 2, "");
+    ok("alanı boşaltmak programdakine döndürüyor",
+       adj()["0-2"].reps === undefined && adj()["0-2"].kg === "55",
+       JSON.stringify(adj()));
+
+    d.getElementById("adj-reset").click();
+    ok("programdakine dönmek bütün sapmaları siliyor",
+       !Object.keys(adj()).length, JSON.stringify(adj()));
+    ok("dönünce set işaretleri de kalkıyor", isaret() === "000", isaret());
+
+    pg.querySelector("[data-edit]").click();
+    alan("data-akg", 2, "55");
+    alan("data-arep", 2, "6");
+    d.getElementById("scrim").click();
+
+    /* İkinci hareket programdaki gibi yapılıyor: dökümü olmamalı. */
+    var pg1 = d.getElementById("ex-1");
+    agirlik(pg1, "20");
+    pg1.querySelectorAll(".setbtn").forEach(function(b){ b.click(); });
+
+    d.getElementById("tofinish").click();
+    d.getElementById("finish").click();
+
+    var rec = oku().history[oku().history.length - 1];
+    var it0 = rec.items[0], it1 = rec.items[1];
+    ok("kayıtta kg alanı en ağır seti gösteriyor", it0.kg === "60", JSON.stringify(it0));
+    ok("set dökümü kayda yazıldı", !!it0.sets && it0.sets.length === 3,
+       JSON.stringify(it0.sets));
+    ok("dökümde sapan set gerçek değeriyle duruyor",
+       it0.sets[2].kg === "55" && it0.sets[2].reps === 6,
+       JSON.stringify(it0.sets[2]));
+    /* Söyleyecek bir şeyi olmayan döküm kayda hiç girmiyor: hepsi aynı
+       ağırlıkta ve tekrar yazılmamışsa düz alanlar zaten anlatıyor. */
+    ok("sapması olmayan hareket döküm yazmıyor", !it1.sets, JSON.stringify(it1));
+
+    d.getElementById("tab-gecmis").click();
+    var hs = d.querySelector("#g-list .hsets");
+    ok("geçmiş kartında set dökümü görünüyor", !!hs);
+    ok("dökümde ağırlık ve tekrar birlikte yazılı",
+       !!hs && /60 kg · 60 kg · 55 kg × 6/.test(hs.textContent),
+       hs ? hs.textContent : "yok");
+    ok("dökümü olmayan hareket geçmişte de sade",
+       d.querySelectorAll("#g-list .hsets").length === 1,
+       d.querySelectorAll("#g-list .hsets").length + " döküm");
+
+    f.remove();
+
+    /* ---- 9. set düğmesine uzun basmak ---- */
+    var st35 = JSON.parse(localStorage.getItem("zirh.v1"));
+    st35.active = {};
+    localStorage.setItem("zirh.v1", JSON.stringify(st35));
+
+    return frame(390, 844);
+  }).then(function(f){
+    var d = f.contentDocument, w = f.contentWindow;
+    d.querySelectorAll('#days [data-day]')[0].click();
+    d.getElementById("begin").click();
+
+    var sb = d.querySelector("#ex-0 .setbtn");
+    sb.dispatchEvent(new w.MouseEvent("mousedown", { bubbles: true }));
+    return bekle(700).then(function(){ return [f, sb]; });
+  }).then(function(arr){
+    var f = arr[0], sb = arr[1];
+    var d = f.contentDocument, w = f.contentWindow;
+
+    ok("uzun basmak düzenleme panelini açıyor",
+       d.getElementById("sheet").classList.contains("on") &&
+       !!d.querySelector("#sheet-body .setedit"),
+       d.getElementById("sheet-title").textContent);
+
+    /* Panel parmağın altında açıldı: tıklama artık set düğmesine
+       gelmiyor, panelin üstüne düşüyor. Tıklamayı yutan bayrağı
+       kimse temizlemezse bir SONRAKİ gerçek dokunuş sessizce
+       kayboluyordu.
+
+       Kısa dokunuş programlı click() değil, gerçek sırasıyla
+       veriliyor — bayrağı sıfırlayan şey basışın kendisi. */
+    function dokun(el){
+      el.dispatchEvent(new w.MouseEvent("mousedown", { bubbles: true }));
+      el.dispatchEvent(new w.MouseEvent("mouseup", { bubbles: true }));
+      el.click();
+    }
+    d.getElementById("scrim").click();
+    dokun(sb);
+    ok("uzun basıştan sonraki dokunuş yutulmuyor",
+       sb.getAttribute("aria-pressed") === "true", sb.getAttribute("aria-pressed"));
+
+    /* Basılı tutmanın kendisi seti işaretlememeli: parmak kalkarken
+       gelen tıklama, uzun basışın devamı. */
+    sb.dispatchEvent(new w.MouseEvent("mousedown", { bubbles: true }));
+    return bekle(700).then(function(){ return [f, sb]; });
+  }).then(function(arr){
+    var f = arr[0], sb = arr[1];
+    var d = f.contentDocument, w = f.contentWindow;
+
+    var oncesi = sb.getAttribute("aria-pressed");
+    sb.dispatchEvent(new w.MouseEvent("mouseup", { bubbles: true }));
+    sb.click();
+    ok("basılı tutmak seti işaretlemiyor",
+       sb.getAttribute("aria-pressed") === oncesi,
+       oncesi + " → " + sb.getAttribute("aria-pressed"));
+
+    f.remove();
+
+    /* ---- 10. gerçek tekrar hesaba giriyor ----
+
+       Yazılan tekrar yalnızca kayıtta durmuyor: tahmini 1RM ve plato
+       uyarısı artık hedef aralığın alt ucunu değil gerçekten yapılan
+       tekrarı kullanıyor. */
+    var st4 = JSON.parse(localStorage.getItem("zirh.v1"));
+    var D4 = 86400000, t4 = Date.now() - 20 * D4;
+    function sess4(gunNo, items){
+      return { ts: t4 + gunNo * D4, person: "erkek", level: 1, day: "B",
+               title: "Kalça, sırt, omuz", dur: 45, items: items };
+    }
+    st4.history = [
+      /* Hip Thrust 60 kg. Programın hedefi 10-12; döküm olmasa 1RM
+         Epley'e göre 60 × (1 + 10/30) = 80 çıkardı. Gerçekte 12
+         tekrar yapılmış: 60 × (1 + 12/30) = 84. */
+      sess4(0, [{ n: "Hip Thrust", done: 3, total: 3, reps: "10-12", kg: "60",
+                  sets: [{ kg: "60", reps: 12 }, { kg: "60", reps: 12 },
+                         { kg: "60", reps: 12 }] }]),
+      /* Lat Pulldown üç seans aynı ağırlıkta ama yapılan tekrar
+         artıyor — bu plato değil, ilerleme. */
+      sess4(3, [{ n: "Lat Pulldown", done: 3, total: 3, reps: "10-12", kg: "35",
+                  sets: [{ kg: "35", reps: 8 }, { kg: "35", reps: 8 },
+                         { kg: "35", reps: 8 }] }]),
+      sess4(6, [{ n: "Lat Pulldown", done: 3, total: 3, reps: "10-12", kg: "35",
+                  sets: [{ kg: "35", reps: 10 }, { kg: "35", reps: 10 },
+                         { kg: "35", reps: 9 }] }]),
+      sess4(9, [{ n: "Lat Pulldown", done: 3, total: 3, reps: "10-12", kg: "35",
+                  sets: [{ kg: "35", reps: 12 }, { kg: "35", reps: 11 },
+                         { kg: "35", reps: 11 }] }])
+    ];
+    localStorage.setItem("zirh.v1", JSON.stringify(st4));
+
+    return frame(390, 844);
+  }).then(function(f){
+    var d = f.contentDocument;
+    d.getElementById("tab-gecmis").click();
+
+    function row(name){
+      var hit = null;
+      d.querySelectorAll("#g-pr .trend").forEach(function(el){
+        if(el.querySelector(".tn").textContent === name) hit = el;
+      });
+      return hit;
+    }
+
+    var ht = row("Hip Thrust");
+    ok("1RM yazılan tekrarla hesaplanıyor",
+       /1RM ≈ 84 kg/.test(ht.querySelector(".tfoot").textContent),
+       ht.querySelector(".tfoot").textContent);
+
+    ok("ağırlık sabitken tekrar artıyorsa plato denmiyor",
+       !row("Lat Pulldown").querySelector(".tnote"),
+       row("Lat Pulldown").textContent);
+
+    f.remove();
+
+    /* ---- 11. seans takvimi ---- */
+    var st5 = JSON.parse(localStorage.getItem("zirh.v1"));
+    var D5 = 86400000, bugun = Date.now();
+    function gunSess(oncekiGun){
+      return { ts: bugun - oncekiGun * D5, person: "erkek", level: 1, day: "A",
+               title: "İtiş, çekiş, bacak", dur: 45,
+               items: [{ n: "Leg Press", done: 3, total: 3, reps: "10-12", kg: "60" }] };
+    }
+    /* Beş seans: üçü son iki haftada, biri 20 gün önce, biri de
+       8 haftalık pencerenin dışında (70 gün). En uzun ara 20 ile 70
+       arasındaki 50 gün. */
+    st5.history = [ gunSess(70), gunSess(20), gunSess(12), gunSess(5), gunSess(1) ];
+    localStorage.setItem("zirh.v1", JSON.stringify(st5));
+
+    return frame(390, 844);
+  }).then(function(f){
+    var d = f.contentDocument;
+    d.getElementById("tab-gecmis").click();
+
+    var cal = d.getElementById("g-cal");
+    ok("takvim 8 haftalık ızgara çiziyor",
+       cal.querySelectorAll(".cday").length === 56,
+       cal.querySelectorAll(".cday").length + " kutu");
+    /* Pencerenin dışındaki seans ızgarada da sayıda da görünmemeli. */
+    ok("yalnızca penceredeki seanslar dolu",
+       cal.querySelectorAll(".cday.on").length === 4,
+       cal.querySelectorAll(".cday.on").length + " dolu gün");
+    ok("seans sayısı ızgaranın altında yazılı",
+       /4<\/b> seans/.test(cal.querySelector(".tfoot").innerHTML),
+       cal.querySelector(".tfoot").textContent);
+    /* Aynı seans sayısına sahip iki kişiyi ayıran şey aralar. */
+    ok("en uzun ara yazılıyor",
+       /50 gün/.test(cal.querySelector(".tfoot").textContent),
+       cal.querySelector(".tfoot").textContent);
+    ok("bugün ızgarada işaretli", cal.querySelectorAll(".cday.today").length === 1,
+       cal.querySelectorAll(".cday.today").length + " bugün");
+    /* Izgara son haftanın Pazar'ıyla bitiyor; bugünden sonrası
+       "çalışılmadı" değil, henüz gelmedi. */
+    ok("gelecek günler ayrı işaretli", cal.querySelectorAll(".cday.off").length <= 6,
+       cal.querySelectorAll(".cday.off").length + " ileri gün");
+    ok("takvimin sesli okuyucu karşılığı var",
+       /8 haftada 4 seans/.test(cal.querySelector(".cgrid").getAttribute("aria-label")),
+       cal.querySelector(".cgrid").getAttribute("aria-label"));
+
+    /* Kayıt yokken boş ızgara çizmek yerine ne olacağını söylüyor. */
+    var st6 = JSON.parse(localStorage.getItem("zirh.v1"));
+    st6.history = [];
+    localStorage.setItem("zirh.v1", JSON.stringify(st6));
+
+    f.remove();
+    return frame(390, 844);
+  }).then(function(f){
+    var d = f.contentDocument;
+    d.getElementById("tab-gecmis").click();
+    ok("kayıt yokken takvim ızgara çizmiyor",
+       !d.querySelector("#g-cal .cgrid") && !!d.querySelector("#g-cal .note"),
+       d.getElementById("g-cal").textContent.slice(0, 50));
+
+    /* ---- 12. hareket kütüphanesi ---- */
+    d.getElementById("tab-rehber").click();
+    var say = function(){ return d.querySelectorAll("#lib-list [data-ex]").length; };
+
+    ok("kütüphane bütün katalogu listeliyor", say() === 41, say() + " hareket");
+    ok("sayı listenin üstünde yazılı",
+       /41 hareket/.test(d.getElementById("lib-count").textContent),
+       d.getElementById("lib-count").textContent);
+
+    var ara = d.getElementById("lib-search");
+    var w = f.contentWindow;
+    function yaz(v){
+      ara.value = v;
+      ara.dispatchEvent(new w.Event("input", { bubbles: true }));
+    }
+
+    /* Türkçe klavyeyle uğraşmadan aranabilmeli: "gogus" yazan da
+       "göğüs" bulmalı. */
+    yaz("gogus");
+    var goguslu = say();
+    ok("aksansız arama Türkçe adı buluyor", goguslu > 0, goguslu + " sonuç");
+    yaz("göğüs");
+    ok("aksanlı arama aynı sonucu veriyor", say() === goguslu,
+       say() + " vs " + goguslu);
+    /* Kimi hareketi İngilizce adıyla arar, kimi Türkçesiyle. */
+    yaz("bench");
+    ok("İngilizce adla da bulunuyor", say() > 0, say() + " sonuç");
+
+    yaz("qwertyuiop");
+    ok("eşleşme yoksa liste boş", say() === 0);
+    ok("boş sonuçta ne yapılacağı yazıyor",
+       /Eşleşen hareket yok/.test(d.getElementById("lib-count").textContent) &&
+       !!d.querySelector("#lib-list .note"),
+       d.getElementById("lib-count").textContent);
+
+    yaz("");
+    ok("arama temizlenince liste geri geliyor", say() === 41, say() + " hareket");
+
+    /* Süzgeçler birlikte çalışmalı: "çekiş için dambılla ne yaparım". */
+    d.querySelector('#lib-groups [data-group="cekis"]').click();
+    var cekis = say();
+    ok("kalıp süzgeci listeyi daraltıyor", cekis > 0 && cekis < 41, cekis + " hareket");
+    ok("seçili kalıp işaretli",
+       d.querySelector('#lib-groups [data-group="cekis"]').getAttribute("aria-pressed") === "true");
+
+    d.querySelector('#lib-gears [data-gear="dambil"]').click();
+    ok("alet süzgeci kalıpla birlikte çalışıyor", say() > 0 && say() < cekis,
+       say() + " vs " + cekis);
+
+    d.querySelector('#lib-groups [data-group=""]').click();
+    d.querySelector('#lib-gears [data-gear=""]').click();
+    ok("süzgeçler sıfırlanabiliyor", say() === 41, say() + " hareket");
+
+    /* EZ bar tek hareketle kendi süzgecini hak etmiyor; arayan onu
+       "Bar" altında bulmayı bekler. */
+    d.querySelector('#lib-gears [data-gear="bar"]').click();
+    var barli = Array.prototype.map.call(
+      d.querySelectorAll("#lib-list [data-ex]"), function(b){ return b.dataset.ex; });
+    ok("EZ bar hareketi bar süzgecinde çıkıyor",
+       barli.indexOf("skull-crusher") > -1, barli.join(","));
+    ok("EZ bar için ayrı süzgeç açılmamış",
+       !d.querySelector('#lib-gears [data-gear="ez"]'));
+    d.querySelector('#lib-gears [data-gear=""]').click();
+
+    /* Kütüphanenin varlık sebebi: dinlenme gününde tekniğe bakabilmek. */
+    d.querySelector('#lib-list [data-ex="deadlift"]').click();
+    ok("kütüphaneden teknik paneli açılıyor",
+       d.getElementById("sheet").classList.contains("on"));
+    ok("panelde hareketin adı yazılı",
+       /Deadlift/.test(d.getElementById("sheet-title").textContent),
+       d.getElementById("sheet-title").textContent);
+    ok("panelde teknik adımları var", d.querySelectorAll("#sheet-body ol li").length >= 3,
+       d.querySelectorAll("#sheet-body ol li").length + " adım");
+    ok("panelde video bağlı",
+       !!d.querySelector("#sheet-body .videoslot"));
+    d.getElementById("scrim").click();
+
+    f.remove();
+
+    /* ---- 13. hedef ile kilo seyri çelişkisi ----
+
+       Uygulama kiloya göre kalori hedefi hesaplıyordu ama tutturulup
+       tutturulmadığını sormuyordu. Terazi zaten söylüyor. */
+    var st7 = JSON.parse(localStorage.getItem("zirh.v1"));
+    st7.profile.erkek.goal = "kas";
+    st7.profile.erkek.w = "80";
+    /* 28 günde 80'den 80'e: hedefi kas olan biri için duruyor demek. */
+    st7.profile.erkek.wlog = [ { d: gunStr(28), w: 80 }, { d: gunStr(14), w: 80.2 },
+                               { d: gunStr(0), w: 80 } ];
+    localStorage.setItem("zirh.v1", JSON.stringify(st7));
+
+    return frame(390, 844);
+  }).then(function(f){
+    var d = f.contentDocument;
+    d.getElementById("tab-profil").click();
+
+    var not = d.querySelector("#pf-wlog .tnote");
+    ok("hedefle gidişat çelişince uyarı çıkıyor", !!not,
+       d.getElementById("pf-wlog").textContent.slice(0, 60));
+    ok("uyarı haftalık hızı rakamla söylüyor",
+       /Haftada 0 kg/.test(not.textContent), not.textContent);
+    ok("kas hedefinde artmayan kilo yetersiz yemek diye okunuyor",
+       /kilo artmıyor/.test(not.textContent) && /200-300 kcal ekle/.test(not.textContent),
+       not.textContent);
+    ok("uyum yokken not olumlu işaretlenmiyor", !not.classList.contains("good"));
+
+    /* Aynı seyir, hedef "kiloyu koru" olunca doğru gidiş demek:
+       uyarı metni hedefe göre değişmeli, kiloya göre değil. */
+    var st8 = JSON.parse(localStorage.getItem("zirh.v1"));
+    st8.profile.erkek.goal = "koru";
+    localStorage.setItem("zirh.v1", JSON.stringify(st8));
+
+    f.remove();
+    return frame(390, 844);
+  }).then(function(f){
+    var d = f.contentDocument;
+    d.getElementById("tab-profil").click();
+    var not = d.querySelector("#pf-wlog .tnote");
+    ok("aynı seyir başka hedefte uyum sayılıyor",
+       !!not && /kilon yerinde duruyor/.test(not.textContent),
+       not ? not.textContent : "not yok");
+    ok("uyumlu gidişat olumlu işaretleniyor", not.classList.contains("good"));
+
+    /* Kilo gün içinde bir buçuk kiloya kadar oynuyor; birkaç günlük
+       aralıktan hız çıkarmak gürültüyü gidişat sanmak olur. */
+    var st9 = JSON.parse(localStorage.getItem("zirh.v1"));
+    st9.profile.erkek.goal = "yag";
+    st9.profile.erkek.wlog = [ { d: gunStr(6), w: 82 }, { d: gunStr(0), w: 80 } ];
+    localStorage.setItem("zirh.v1", JSON.stringify(st9));
+
+    f.remove();
+    return frame(390, 844);
+  }).then(function(f){
+    var d = f.contentDocument;
+    d.getElementById("tab-profil").click();
+    ok("kısa aralıktan gidişat çıkarılmıyor", !d.querySelector("#pf-wlog .tnote"),
+       d.getElementById("pf-wlog").textContent.slice(0, 60));
+    ok("grafik yine de çiziliyor", !!d.querySelector("#pf-wlog .spark"));
+
+    f.remove();
     return frame(1280, 900);
   }).then(function(f){
-    /* ---- 8. masaüstü ---- */
+    /* ---- 14. masaüstü ---- */
     var d = f.contentDocument;
     var btns = d.querySelectorAll(".tabs button");
     var first = btns[0].getBoundingClientRect();

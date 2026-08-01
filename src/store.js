@@ -21,9 +21,12 @@ export const db = {
   person: "erkek",
   theme: null,
   schema: 2,
-  active: {},    /* [person]["<seviye>:<gün>"] = {date, sets, kg, swap, note, startedAt} */
+  active: {},    /* [person]["<seviye>:<gün>"] = {date, sets, kg, adj, swap, note, startedAt} */
   profile: {},   /* [person] = {h, w, goal, level, wlog} */
-  history: []    /* [{ts, person, level, day, title, dur, items, note?}] */
+  history: []    /* [{ts, person, level, day, title, dur, items, note?}]
+                    items[] = {n, done, total, reps, kg, sets?}
+                    sets[]  = {kg, reps} — yalnız düz alanlardan
+                              farklı bir şey söylüyorsa yazılır */
 };
 
 export function load(){
@@ -148,7 +151,11 @@ export const todayStr = () =>
   String(new Date().getMonth() + 1).padStart(2, "0") + "-" +
   String(new Date().getDate()).padStart(2, "0");
 
-const blank = () => ({ date: todayStr(), sets: {}, kg: {}, swap: {}, note: "", startedAt: 0 });
+/* adj: yalnızca programdan SAPAN setler. "3. sette 5 kilo düşürdüm"
+   ya da "hedef 8'di, 6 çıktı" burada duruyor; sapmayan setin kaydı
+   yok, çünkü söyleyeceği bir şey yok. Bu seçim iki işe yarıyor —
+   sete dokunmak tek adım olarak kalıyor ve kayıt şişmiyor. */
+const blank = () => ({ date: todayStr(), sets: {}, kg: {}, adj: {}, swap: {}, note: "", startedAt: 0 });
 
 export function session(person, lvl, dayKey, create){
   if(!db.active[person]) db.active[person] = {};
@@ -163,6 +170,7 @@ export function session(person, lvl, dayKey, create){
      bu alan yok. Şema sürümü artmıyor — not alanıyla aynı gerekçe,
      alan isteğe bağlı ve eksikliği boş nesneye eşit. */
   if(!s.swap) s.swap = {};
+  if(!s.adj) s.adj = {};
   return s;
 }
 
@@ -172,11 +180,44 @@ export function clearSession(person, lvl, dayKey){
 
 /* ---------- geçmiş kaydı ---------- */
 
+/* Bir setin gerçekte ne olduğu. Öntanımlı hâli "hareketin ağırlığı,
+   programın hedef tekrarı" — sete dokunmak bunu söylemek demek.
+   Kişi başka bir şey yaptıysa adj'de duruyor. */
+export function setDetail(s, i, x, kgDefault){
+  const a = s.adj && s.adj[i + "-" + x];
+  return {
+    kg: a && a.kg != null ? a.kg : (kgDefault || ""),
+    reps: a && a.reps != null ? a.reps : null
+  };
+}
+
 export function buildRecord(person, day, s){
   const items = day.ex.map((e, i) => {
-    let done = 0;
-    for(let x = 0; x < e.sets; x++) if(s.sets[i + "-" + x]) done++;
-    return { n: e.name, done, total: e.sets, reps: e.reps, kg: (s.kg[i] || "") };
+    const detay = [];
+    for(let x = 0; x < e.sets; x++){
+      if(s.sets[i + "-" + x]) detay.push(setDetail(s, i, x, s.kg[i]));
+    }
+    if(!detay.length) return { n: e.name, done: 0 };
+
+    /* kg alanı en ağır setten geliyor. Eskiden hareket başına tek
+       ağırlık vardı ve bu alan onu tutuyordu; şimdi setler ayrışabilse
+       de "o gün ne kaldırdın" sorusunun cevabı en ağır settir. Alanın
+       kalması eski kayıtlarla yeni kayıtları aynı biçimde okunur
+       tutuyor — geçmiş listesi ve ağırlık seyri değişmeden çalışıyor. */
+    const enAgir = detay.reduce((a, d) => {
+      const v = parseFloat(String(d.kg).replace(",", "."));
+      return v > a.v ? { v, kg: d.kg } : a;
+    }, { v: -1, kg: s.kg[i] || "" });
+
+    const it = { n: e.name, done: detay.length, total: e.sets,
+                 reps: e.reps, kg: enAgir.kg };
+
+    /* Set dökümü ancak düz alanların söylemediği bir şey varsa
+       yazılıyor: hepsi aynı ağırlıkta ve tekrarı girilmemişse
+       eklenecek bilgi yok, boş not gibi kayda hiç girmiyor. */
+    const ayrisan = detay.some(d => d.reps != null || d.kg !== enAgir.kg);
+    if(ayrisan) it.sets = detay;
+    return it;
   }).filter(it => it.done > 0);
 
   const rec = {

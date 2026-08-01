@@ -12,6 +12,7 @@ import { db, save, session, clearSession, buildRecord, lastFor, bestFor, profile
 import { programDay, totalSets, estimateMinutes, program, applySwaps } from "../data/programs.js";
 import { EXERCISES } from "../data/exercises.js";
 import { openSheet, closeSheet } from "../ui/sheet.js";
+import { techBody } from "../ui/techsheet.js";
 import { startTimer, hideTimer, unlockAudio, keepAwake, releaseAwake } from "../ui/timer.js";
 import { go } from "../ui/router.js";
 import { videoFor } from "../data/videos.js";
@@ -111,8 +112,13 @@ export function render(){
   const html = day.ex.map((e, i) => {
     const setBtns = Array.from({ length: e.sets }, (_, x) => {
       const k = i + "-" + x;
-      return '<button class="setbtn" data-set="' + k + '" data-ex="' + i + '" ' +
-        'aria-pressed="' + (s.sets[k] ? "true" : "false") + '" aria-label="' + (x + 1) + '. set">' +
+      /* Programdan sapan set noktayla işaretli: "hepsi aynı gitti mi"
+         sorusunun cevabı düzenleme panelini açmadan görünsün. */
+      const sapti = !!(s.adj && s.adj[k]);
+      return '<button class="setbtn' + (sapti ? " adj" : "") + '" data-set="' + k +
+        '" data-ex="' + i + '" ' +
+        'aria-pressed="' + (s.sets[k] ? "true" : "false") + '" aria-label="' + (x + 1) +
+        '. set' + (sapti ? ", programdan farklı" : "") + '">' +
         (x + 1) + '</button>';
     }).join("");
 
@@ -147,7 +153,9 @@ export function render(){
       '<ul class="pcues">' + e.cues.slice(0, 3).map(c => "<li>" + esc(c) + "</li>").join("") + '</ul>' +
       '<div class="pspacer"></div>' +
       '<div class="pctl"><p class="plabel">Ağırlık</p>' + weight + '</div>' +
-      '<div class="pctl"><p class="plabel">Setler · son 2 tekrar zorlansın</p>' +
+      '<div class="pctl">' +
+        '<p class="plabel plabelrow"><span>Setler · son 2 tekrar zorlansın</span>' +
+          '<button type="button" data-edit="' + i + '">Düzenle</button></p>' +
         '<div class="setrow-big">' + setBtns + '</div></div>' +
       /* İki düğme aynı satırda: değiştirme seçeneğinin kendine ayrı bir
          satır alması, dar ekranda başka bir şeyi kırpardı. Üstelik karar
@@ -257,31 +265,140 @@ function nextUp(exIndex){
 
 /* ---------- teknik paneli ---------- */
 
-/* Panelin gövdesi. Antrenman hareketi de ısınma hareketi de aynı üç
-   soruyu cevaplıyor, o yüzden kalıp ortak. */
-function techBody(m, v){
-  return '<div class="exbody">' +
-    '<h4>Neden bu hareket</h4><p class="why">' + esc(m.why) + '</p>' +
-    '<h4>Nasıl yapılır</h4><ol>' + m.cues.map(c => "<li>" + esc(c) + "</li>").join("") + '</ol>' +
-    '<div class="warnbox"><b>En sık hata.</b> ' + esc(m.mistake) + '</div>' +
-    (v
-      ? '<div class="videoslot" data-vid="' + esc(v.id) + '">' +
-          '<button type="button" class="vbtn">' +
-            '<svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></svg>Tekniği izle</button>' +
-          '<p class="vmeta">' + esc(v.channel) + '</p>' +
-        '</div>'
-      : m.noVideo
-        ? ''
-        : '<p class="note" style="margin-top:14px">Bu hareket için seçilmiş bir video henüz yok.</p>') +
-  '</div>';
-}
-
 function openTech(i){
   const e = day.ex[i];
   openSheet({
     title: e.name,
     sub: e.alt + " · " + e.target,
     html: techBody(e, videoFor(e.id))
+  });
+}
+
+/* ---------- set düzenleme ---------- */
+
+/* Kayıt eskiden hareket başına tek ağırlık tutuyordu ve tekrar
+   alanına programın HEDEFİ yazılıyordu — yapılan değil. "Son sette
+   düşürdüm" hiç kaydedilemiyordu; tahmini 1RM tahmin üstüne tahmin
+   oluyordu; plato tespiti "aynı ağırlıkta ama bir tekrar fazla"yı
+   göremediği için şüphede susmak zorundaydı.
+
+   Buradaki tasarım kararı: sete dokunmak TEK adım olarak kalıyor.
+   Salonda en sık yapılan hareket o; ona ikinci bir soru eklemek
+   uygulamanın en hızlı yerini yavaşlatırdı. Farklı bir şey olduysa
+   panel açılıyor ve yalnızca sapan setler kaydediliyor.
+
+   Uzun basmak da aynı paneli açıyor: sapmayı fark ettiğin an
+   başparmağın zaten o düğmenin üstünde. */
+
+let editTarget = -1;
+
+/* Uzun basış tıklamayı da tetikliyor; bayrak onu bir kez yutuyor. */
+let pressHandled = false;
+
+function longPress(root, secici, fn){
+  let t = null, hedef = null;
+  const iptal = () => { clearTimeout(t); t = null; hedef = null; };
+
+  const bas = ev => {
+    const el = ev.target.closest(secici);
+    if(!el) return;
+    /* Bayrak her yeni basışta sıfırlanıyor. Uzun basıştan sonra parmak
+       açılan panelin üstünde kalkarsa tıklama set düğmesine hiç gelmez
+       ve bayrağı kimse temizlemezdi; bir sonraki gerçek dokunuş sessizce
+       yutulurdu. Ancak hemen ardından gelen tıklama yutulsun. */
+    pressHandled = false;
+    hedef = el;
+    t = setTimeout(() => {
+      t = null;
+      pressHandled = true;
+      buzz(20);
+      fn(hedef);
+    }, 500);
+  };
+
+  root.addEventListener("touchstart", bas, { passive: true });
+  root.addEventListener("mousedown", bas);
+  ["touchend", "touchmove", "touchcancel", "mouseup", "mouseleave"]
+    .forEach(e => root.addEventListener(e, iptal, { passive: true }));
+}
+
+function setEditRow(e, i, x, s){
+  const a = (s.adj && s.adj[i + "-" + x]) || {};
+  const kg = a.kg != null ? a.kg : (s.kg[i] || "");
+  const done = !!s.sets[i + "-" + x];
+  return '<li' + (done ? '' : ' class="undone"') + '>' +
+    '<b>' + (x + 1) + '.</b>' +
+    (e.bw
+      ? '<span class="bwmini">vücut ağırlığı</span>'
+      : '<span class="pf"><input type="text" inputmode="decimal" data-akg="' + x + '" ' +
+        'aria-label="' + (x + 1) + '. setin ağırlığı" placeholder="' +
+        esc(s.kg[i] || "—") + '" value="' + esc(kg) + '"><i>kg</i></span>') +
+    '<span class="pf"><input type="text" inputmode="numeric" data-arep="' + x + '" ' +
+      'aria-label="' + (x + 1) + '. sette yaptığın tekrar" placeholder="' +
+      esc(e.reps) + '" value="' + (a.reps != null ? a.reps : "") + '"><i>tk</i></span>' +
+  '</li>';
+}
+
+function openSetEdit(i){
+  const e = day.ex[i], s = curW();
+  editTarget = i;
+
+  const rows = Array.from({ length: e.sets }, (_, x) => setEditRow(e, i, x, s)).join("");
+
+  openSheet({
+    title: "Setleri düzenle",
+    sub: e.name + " · program " + e.sets + " × " + e.reps,
+    html:
+      '<ol class="setedit">' + rows + '</ol>' +
+      '<button type="button" class="btn ghost" id="adj-reset">Programdakine dön</button>' +
+      '<p class="note">Boş bıraktığın alan "programdaki gibi" demek. ' +
+      'Yaptığın tekrarı yazarsan tahmini 1RM ve plato uyarısı tahmin ' +
+      'yerine gerçek sayıyla çalışır.</p>'
+  });
+}
+
+/* Boş alan "programdaki gibi" demek, sıfır demek değil: kayıttan
+   silinip öntanımlıya dönüyor. Böylece yanlışlıkla açılan panel
+   veriyi kirletmiyor. */
+function setAdj(i, x, alan, deger){
+  const s = curW(), k = i + "-" + x;
+  const v = String(deger).trim();
+  const bag = s.adj[k] || {};
+
+  if(!v){
+    delete bag[alan];
+  }else if(alan === "reps"){
+    const n = parseInt(v.replace(/\D+/g, ""), 10);
+    if(!(n > 0)) return;
+    bag.reps = n;
+  }else{
+    bag.kg = v;
+  }
+
+  if(Object.keys(bag).length) s.adj[k] = bag;
+  else delete s.adj[k];
+
+  save();
+  paintSetRow(i);
+}
+
+function resetAdj(i){
+  const s = curW(), e = day.ex[i];
+  for(let x = 0; x < e.sets; x++) delete s.adj[i + "-" + x];
+  save();
+  paintSetRow(i);
+  closeSheet();
+  toast("Setler programdakine döndü");
+}
+
+/* Yalnızca o hareketin set satırı tazeleniyor: sayfalayıcıyı yeniden
+   kurmak, panel kapanırken kullanıcının altından sayfa kaydırırdı. */
+function paintSetRow(i){
+  const row = document.querySelector("#ex-" + i + " .setrow-big");
+  if(!row) return;
+  const s = cur();
+  row.querySelectorAll(".setbtn").forEach(b => {
+    b.classList.toggle("adj", !!(s.adj && s.adj[b.dataset.set]));
   });
 }
 
@@ -560,6 +677,9 @@ export function initWorkout(hooks){
     const sw = ev.target.closest("[data-swap]");
     if(sw) return openSwap(+sw.dataset.swap);
 
+    const ed = ev.target.closest("[data-edit]");
+    if(ed) return openSetEdit(+ed.dataset.edit);
+
     const wb = ev.target.closest("[data-warm]");
     if(wb) openWarm(wb.dataset.warm);
   });
@@ -569,8 +689,22 @@ export function initWorkout(hooks){
      panelde saklı değil — açan sayfanın sırası tutuluyor. */
   $("sheet-body").addEventListener("click", ev => {
     const pick = ev.target.closest("[data-pick]");
-    if(pick && swapTarget >= 0) doSwap(swapTarget, pick.dataset.pick);
+    if(pick && swapTarget >= 0) return doSwap(swapTarget, pick.dataset.pick);
+
+    if(ev.target.closest("#adj-reset") && editTarget >= 0) resetAdj(editTarget);
   });
+
+  $("sheet-body").addEventListener("input", ev => {
+    if(editTarget < 0) return;
+    const t = ev.target;
+    if(t.dataset.akg != null) setAdj(editTarget, +t.dataset.akg, "kg", t.value);
+    else if(t.dataset.arep != null) setAdj(editTarget, +t.dataset.arep, "reps", t.value);
+  });
+
+  /* Uzun basmak da düzenlemeyi açıyor: sapmayı fark ettiğin an
+     başparmağın zaten o düğmenin üstünde. Basılı tutma seti
+     işaretlemiyor — parmak kalkarken tıklama iptal ediliyor. */
+  longPress(pager, ".setbtn", el => openSetEdit(+el.dataset.ex));
 
   pager.addEventListener("input", ev => {
     /* Not da seansın içinde tutuluyor: uygulama kapansa, telefon
@@ -616,6 +750,7 @@ export function initWorkout(hooks){
 }
 
 function toggleSet(sb){
+  if(pressHandled){ pressHandled = false; return; }
   unlockAudio();
   const s = curW(), k = sb.dataset.set, ix = +sb.dataset.ex;
   const wasOn = sb.getAttribute("aria-pressed") === "true";

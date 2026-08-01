@@ -18,6 +18,7 @@ import * as workout from "./screens/workout.js";
 import { renderHistory, wipeHistory } from "./screens/history.js";
 import { initProfile, renderProfile, renderTargets } from "./screens/profile.js";
 import { initMeals, renderMeals, resetPlan } from "./screens/meals.js";
+import { initLibrary, renderLibrary } from "./screens/library.js";
 
 /* ---------- tema ---------- */
 
@@ -87,6 +88,7 @@ initProfile({
 });
 
 initMeals();
+initLibrary();
 
 $("theme").onclick = () => {
   db.theme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
@@ -99,6 +101,9 @@ $("wipe").onclick = () => wipeHistory(rebuildWorkout);
 
 /* Öğün hedefleri profildeki kiloya bağlı; sekmeye her girildiğinde tazelenir. */
 whenEntering("ogun", renderMeals);
+/* Kütüphane kişiden ve seanstan bağımsız; bir kez kurulup
+   sekmeye girildiğinde tazeleniyor. */
+whenEntering("rehber", renderLibrary);
 whenEntering("profil", renderTargets);
 
 workout.setDay(workout.suggestDay());
@@ -106,6 +111,7 @@ workout.render();
 renderHistory();
 renderProfile();
 renderMeals();
+renderLibrary();
 
 go((location.hash || "").replace("#/", ""), false);
 workout.resumeWhereLeftOff();

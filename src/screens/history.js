@@ -1,6 +1,6 @@
 /* Geçmiş — seans kayıtları, özet sayılar ve hareket başına ilerleme. */
 
-import { $, esc, num, toast, trDate } from "../dom.js";
+import { $, esc, num, numOr0, toast, trDate } from "../dom.js";
 import { db, save, PEOPLE } from "../store.js";
 import { program } from "../data/programs.js";
 import { trends, deload, weekly, GROUPS } from "../progress.js";
@@ -25,8 +25,87 @@ export function renderHistory(){
   }
 
   renderWeekly();
+  renderCalendar(mine);
   renderTrends();
   renderList(mine);
+}
+
+/* ---------- takvim ---------- */
+
+/* "Düzenli miyim" sorusunun cevabı listede var ama okunmuyor: on iki
+   kartı tarayıp aralarındaki boşlukları kafada hesaplamak gerekiyor.
+   Izgara aynı veriyi tek bakışta veriyor.
+
+   Sekiz hafta gösteriliyor, takvim ayı değil. Ay ızgarası ayın
+   birinde neredeyse boş kalıyor ve "bu ay az çalıştım" gibi
+   görünüyor; oysa geçen haftanın kayıtları hemen yukarıda duruyor.
+   Sabit pencere bu yanılmayı ortadan kaldırıyor.
+
+   En uzun ara da yazılıyor: seans sayısı yüksek olup arası açık olan
+   biriyle düzenli çalışan biri aynı sayıya sahip olabiliyor. Farkı
+   söyleyen şey aralar. */
+const HAFTA = 8;
+
+function renderCalendar(mine){
+  const box = $("g-cal");
+  if(!mine.length){
+    box.innerHTML = '<p class="note" style="margin:0">İlk seansından sonra ' +
+      'hangi günlerde çalıştığın burada bir ızgarada görünecek.</p>';
+    return;
+  }
+
+  /* Bugünün haftasının Pazar'ıyla bitiyor; Pazartesi başlangıçlı
+     satırlar için gün numarası tr düzenine kaydırılıyor. */
+  const bugun = new Date();
+  bugun.setHours(0, 0, 0, 0);
+  const kaydir = (bugun.getDay() + 6) % 7;          /* Pazartesi = 0 */
+  const son = new Date(bugun);
+  son.setDate(son.getDate() + (6 - kaydir));
+
+  const gunler = [];
+  for(let i = HAFTA * 7 - 1; i >= 0; i--){
+    const d = new Date(son);
+    d.setDate(d.getDate() - i);
+    gunler.push(d);
+  }
+
+  const anahtar = d => d.getFullYear() + "-" +
+    String(d.getMonth() + 1).padStart(2, "0") + "-" +
+    String(d.getDate()).padStart(2, "0");
+
+  const calisilan = {};
+  mine.forEach(h => { calisilan[anahtar(new Date(h.ts))] = h; });
+
+  const hucreler = gunler.map(d => {
+    const k = anahtar(d);
+    const h = calisilan[k];
+    const ileri = d > bugun;
+    const cls = "cday" + (h ? " on" : "") + (ileri ? " off" : "") +
+                (k === anahtar(bugun) ? " today" : "");
+    return '<span class="' + cls + '"' +
+      (h ? ' title="' + esc(trDate(h.ts, { day: "numeric", month: "long" }) +
+                           " · " + h.title) + '"' : "") +
+      '></span>';
+  }).join("");
+
+  /* Aralar yalnızca ilk seanstan bugüne kadar sayılıyor: uygulamayı
+     kullanmaya başlamadan önceki günler bir "ara" değil. */
+  const ts = mine.map(h => h.ts).sort((a, b) => a - b);
+  let enUzun = Math.round((Date.now() - ts[ts.length - 1]) / 86400000);
+  for(let i = 1; i < ts.length; i++){
+    const ara = Math.round((ts[i] - ts[i - 1]) / 86400000);
+    if(ara > enUzun) enUzun = ara;
+  }
+
+  const sonSekiz = mine.filter(h => h.ts >= gunler[0].getTime()).length;
+
+  box.innerHTML =
+    '<div class="cgrid" role="img" aria-label="Son ' + HAFTA +
+      ' haftada ' + sonSekiz + ' seans">' + hucreler + '</div>' +
+    '<div class="tfoot">' +
+      '<span>Son ' + HAFTA + ' hafta · <b>' + sonSekiz + '</b> seans</span>' +
+      '<span class="t1rm">en uzun ara <b>' + enUzun + ' gün</b></span>' +
+    '</div>';
 }
 
 /* ---------- haftalık denge ---------- */
@@ -130,6 +209,20 @@ function renderTrends(){
   $("g-pr").innerHTML = rows + about;
 }
 
+/* Set dökümü yalnızca setler ayrıştığında kaydediliyor; ayrıştığında
+   da görünmesi gerekiyor. "60 kg" yazıp son sette 55'e düştüğünü
+   saklamak, kaydı olduğundan iyi gösterirdi.
+
+   Tek satır, virgülle: üç sete üç satır açmak geçmiş listesini
+   taranamaz hâle getiriyordu. */
+function setLine(it){
+  if(!Array.isArray(it.sets) || !it.sets.length) return "";
+  const parts = it.sets.map(d =>
+    (d.kg ? num(numOr0(d.kg)) + " kg" : "") +
+    (d.reps != null ? (d.kg ? " × " : "") + d.reps : ""));
+  return '<div class="hsets">' + esc(parts.join(" · ")) + '</div>';
+}
+
 function renderList(mine){
   if(!mine.length){
     $("g-list").innerHTML =
@@ -152,7 +245,8 @@ function renderList(mine){
       '<p class="hsub">' + esc(p.name) + (h.title ? ' · ' + esc(h.title) : '') + '</p>' +
       (h.items || []).map(it =>
         '<div class="hitem"><span class="n">' + esc(it.n) + '</span>' +
-        '<span class="v">' + it.done + '/' + it.total + (it.kg ? " · " + esc(it.kg) + " kg" : "") + '</span></div>'
+        '<span class="v">' + it.done + '/' + it.total + (it.kg ? " · " + esc(it.kg) + " kg" : "") + '</span></div>' +
+        setLine(it)
       ).join("") +
       /* Notu olmayan kayıt — eski kayıtların hepsi öyle — hiç satır açmaz. */
       (h.note ? '<p class="hnote">' + esc(h.note) + '</p>' : '') +

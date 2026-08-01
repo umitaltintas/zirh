@@ -9,7 +9,7 @@
 import { $, esc, num, numOr0, toast, buzz } from "../dom.js";
 import { db, save, profile, PEOPLE, logWeight } from "../store.js";
 import { PROGRAMS, program } from "../data/programs.js";
-import { macros, daily, bodyNote, bmi } from "../data/nutrition.js";
+import { macros, daily, bodyNote, bmi, goalCheck } from "../data/nutrition.js";
 import { levelHint } from "../progress.js";
 import { sparkHTML } from "../ui/spark.js";
 
@@ -55,6 +55,12 @@ function renderWeightLog(){
   const diff = Math.round((last - first) * 10) / 10;
   const days = Math.round((new Date(log[log.length - 1].d) - new Date(log[0].d)) / 86400000);
 
+  /* Asıl mesele grafiğin kendisi değil, hedefle uyup uymadığı.
+     Uygulama kiloya göre bir kalori hedefi hesaplıyordu ama
+     tutturulup tutturulmadığını hiç sormuyordu; terazi zaten
+     söylüyorken sormaya gerek de yok. */
+  const chk = goalCheck(log, profile().goal);
+
   box.innerHTML =
     sparkHTML(vals, "Kilo seyri") +
     '<div class="tfoot">' +
@@ -65,7 +71,12 @@ function renderWeightLog(){
           : '<b class="delta ' + (diff > 0 ? "up" : "down") + '">' +
             (diff > 0 ? "+" : "") + num(diff) + ' kg</b>') +
       '</span>' +
-    '</div>';
+    '</div>' +
+    (chk
+      ? '<p class="tnote' + (chk.ok ? " good" : "") + '">' +
+        '<b>Haftada ' + (chk.hiz > 0 ? "+" : "") + num(chk.hiz) + ' kg.</b> ' +
+        esc(chk.text) + '</p>'
+      : "");
 }
 
 function renderLevels(){
@@ -147,6 +158,9 @@ export function initProfile(hooks){
     $("goals").querySelectorAll("[data-goal]").forEach(x =>
       x.setAttribute("aria-pressed", String(x === b)));
     renderTargets();
+    /* Hedef değişti: kilo seyrinin altındaki değerlendirme de
+       değişmeli, "kas kazan" için iyi olan "yağ yak" için kötü. */
+    renderWeightLog();
     buzz(10);
     hooks.onGoalChange && hooks.onGoalChange();
   });

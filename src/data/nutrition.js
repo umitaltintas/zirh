@@ -62,3 +62,79 @@ export function bodyNote(h, w){
   if(v < 25) return "Kilon sağlıklı aralıkta. Kas kazanmak için kaloriyi çok oynatmana gerek yok; proteini tutturmak ve ağırlığı düzenli artırmak yeterli.";
   return "Kas kazanırken yağ oranını da düşürmek istiyorsan kaloriyi biraz kıs, proteini yüksek tut. Ağırlık antrenmanı bu süreçte kasını korur.";
 }
+
+/* ============================================================
+   Hedefle gerçeğin karşılaştırması.
+
+   Uygulama kiloya göre bir kalori hedefi hesaplıyor, öğün planını da
+   ona göre kuruyordu — ama tutturulup tutturulmadığını hiç sormuyordu.
+   Hedefi "kas kazan" olan biri üç ayda dört kilo verdiğinde ekranda
+   hiçbir şey değişmiyordu.
+
+   Cevap için kalori girmeye gerek yok: terazi zaten söylüyor. Kilo
+   yönü hedefle çelişiyorsa yenen de hesaplananla çelişiyordur.
+
+   Eşikler haftalık hıza göre:
+     kas kazanmak   haftada +0,1 ile +0,4 kg — üstü büyük ölçüde yağ
+     yağ yakmak     haftada -0,3 ile -0,9 kg — altı kas kaybı riski
+     kiloyu korumak haftada ±0,25 kg
+   Bunlar keskin sınırlar değil, yaygın aralıklar. O yüzden metin
+   "yanlış yapıyorsun" demiyor, ne göründüğünü söyleyip ne
+   yapılacağını yazıyor.
+   ============================================================ */
+
+const BANDS = {
+  kas:  { lo:  0.10, hi:  0.40 },
+  yag:  { lo: -0.90, hi: -0.30 },
+  koru: { lo: -0.25, hi:  0.25 }
+};
+
+/* Üç haftadan kısa sürede karar verilmiyor: kilo suyla, tuzla ve
+   bağırsak doluluğuyla günlerce oynuyor, iki ölçüm arası fark
+   çoğunlukla gürültü. */
+const MIN_GUN = 21;
+
+/* Metin bandın hangi ucundan çıkıldığına göre. "alt" bandın altı,
+   "ust" bandın üstü — hedefin ne olduğuna göre ikisi de iyi ya da
+   kötü olabiliyor, o yüzden cümleler tek tek yazılı. bodyNote ile
+   aynı yerde duruyorlar: tavsiye metni de beslenme bilgisi. */
+const SOZ = {
+  kas: {
+    ok:  "Hedefinle gidişat uyumlu: kas kazanmak için makul bir hızda alıyorsun.",
+    alt: "Hedefin kas kazanmak ama kilo artmıyor. Kas, açıkta kalan bir bütçeyle " +
+         "kurulmuyor — yediğin hesaplanan hedefin altında. Günde 200-300 kcal ekle " +
+         "ve iki hafta sonra tekrar bak.",
+    ust: "Kilo hedeflenenden hızlı artıyor. Bu hızda gelenin büyük kısmı yağ olur; " +
+         "kaloriyi biraz geri çek, ağırlıklar artmaya devam ettiği sürece kas gitmez."
+  },
+  yag: {
+    ok:  "Hedefinle gidişat uyumlu: kası koruyan bir hızda veriyorsun.",
+    alt: "Kilo çok hızlı düşüyor. Bu hızda giden yalnızca yağ olmaz, kas da gider " +
+         "— üstelik salonda gücün düşer. Günde 200-300 kcal ekleyip proteini yerinde tut.",
+    ust: "Hedefin yağ yakmak ama kilo inmiyor. Hesaplanan kalori hedefi " +
+         "tutmuyor demektir; porsiyonları ölçmeden birkaç hafta gitmek çoğu zaman yeterli."
+  },
+  koru: {
+    ok:  "Hedefinle gidişat uyumlu: kilon yerinde duruyor.",
+    alt: "Hedefin kiloyu korumak ama düşüyorsun. Fark küçük görünse de aylara " +
+         "yayılınca birikiyor; porsiyonları biraz büyüt.",
+    ust: "Hedefin kiloyu korumak ama artıyorsun. Hesaplanan kalori hedefinin " +
+         "üstüne çıkıyorsun demektir."
+  }
+};
+
+export function goalCheck(wlog, goal){
+  if(!Array.isArray(wlog) || wlog.length < 2) return null;
+  const band = BANDS[goal], soz = SOZ[goal];
+  if(!band || !soz) return null;
+
+  const ilk = wlog[0], son = wlog[wlog.length - 1];
+  const gun = Math.round((new Date(son.d) - new Date(ilk.d)) / 86400000);
+  if(gun < MIN_GUN) return null;
+
+  const fark = Math.round((son.w - ilk.w) * 10) / 10;
+  const hiz = Math.round((fark / gun) * 7 * 100) / 100;   /* kg / hafta */
+
+  const yan = hiz < band.lo ? "alt" : hiz > band.hi ? "ust" : "ok";
+  return { ok: yan === "ok", yan, gun, fark, hiz, text: soz[yan] };
+}

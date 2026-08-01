@@ -155,6 +155,9 @@
     <div class="stat"><b id="g-last">—</b><span>Son seans</span></div>
   </div>
 
+  <h2 class="sec">Süreklilik</h2>
+  <div class="card" id="g-cal"></div>
+
   <h2 class="sec">Haftalık denge</h2>
   <div class="card" id="g-week"></div>
 
@@ -168,7 +171,21 @@
 <!-- ==================== REHBER ==================== -->
 <section class="view" id="v-rehber" role="tabpanel" aria-labelledby="tab-rehber">
 
-  <h2 class="sec" style="margin-top:0">Ağırlığı ne zaman artıracaksın</h2>
+  <!-- Hareket kütüphanesi. Katalogdaki her hareketin tekniği ve
+       videosu programda olmasa da buradan açılabiliyor. -->
+  <h2 class="sec" style="margin-top:0">Hareket kütüphanesi</h2>
+  <div class="card">
+    <span class="libsearch">
+      <input id="lib-search" type="search" autocomplete="off"
+             placeholder="Hareket ya da kas ara…" aria-label="Hareket ara">
+    </span>
+    <div class="chips" id="lib-groups" role="group" aria-label="Hareket kalıbına göre süz"></div>
+    <div class="chips" id="lib-gears" role="group" aria-label="Alete göre süz"></div>
+    <p class="plabel" id="lib-count"></p>
+    <div id="lib-list"></div>
+  </div>
+
+  <h2 class="sec">Ağırlığı ne zaman artıracaksın</h2>
   <div class="card">
     <div class="rule">
       <div class="mark">01</div>

@@ -113,6 +113,47 @@ html[data-theme="light"] .heroprog .bar{background:#E3E5EA}
   transform:rotate(45deg);opacity:.6;
 }
 
+/* Set etiketi ve "Düzenle" aynı satırda. Etiket kısalabiliyor,
+   düğme kısalmıyor: dar ekranda kırpılacaksa koçluk metninin sonu
+   kırpılsın, dokunulacak hedef değil. Satır yüksekliği etiketinkiyle
+   aynı kalıyor — sayfa uzamıyor. */
+.plabelrow{
+  display:flex;align-items:baseline;gap:8px;
+}
+.plabelrow>span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.plabelrow>button{
+  flex:none;border:0;background:transparent;cursor:pointer;padding:0;
+  font:inherit;font-size:inherit;letter-spacing:inherit;text-transform:inherit;
+  font-weight:700;color:var(--accent);
+}
+.plabelrow>button:active{opacity:.55}
+
+/* Programdan sapan set: rakamın altında küçük bir nokta. Renk
+   değiştirmek "yanlış yaptın" gibi okunuyordu; nokta yalnızca
+   "burada söyleyecek bir şey var" diyor. */
+.setbtn.adj{position:relative}
+.setbtn.adj::after{
+  content:"";position:absolute;left:50%;bottom:7px;transform:translateX(-50%);
+  width:4px;height:4px;border-radius:50%;background:currentColor;opacity:.65;
+}
+
+/* set düzenleme paneli */
+.setedit{list-style:none;margin:0 0 14px;padding:0;counter-reset:s}
+.setedit li{
+  display:flex;align-items:center;gap:9px;
+  padding:9px 0;border-bottom:1px solid var(--line-soft);
+}
+.setedit li:last-child{border-bottom:0}
+/* İşaretlenmemiş set sönük: panel bütün setleri gösteriyor ama
+   henüz yapılmamış olanın kaydı da yok. */
+.setedit li.undone{opacity:.5}
+.setedit b{
+  flex:none;width:22px;font-family:var(--display);font-weight:700;font-size:16px;
+  color:var(--accent);font-variant-numeric:tabular-nums;
+}
+.setedit .pf{flex:1;min-width:0}
+.setedit .bwmini{flex:1;font-size:13px;color:var(--text-3)}
+
 /* değiştirme paneli — ısınma listesiyle aynı iskelet, soldaki etiket
    dozu değil aleti söylüyor: sorun genelde aletin kendisi. */
 .swaplist{list-style:none;margin:0 0 16px;padding:0}
@@ -386,6 +427,30 @@ html[data-theme="light"] .heroprog .bar{background:#E3E5EA}
   margin:10px 0 0;padding:9px 12px;border-left:3px solid var(--p15);border-radius:0 10px 10px 0;
   background:var(--surface-2);font-size:12.5px;line-height:1.45;color:var(--text-2);
 }
+.tnote b{color:var(--text);font-weight:700}
+/* Gidişat hedefle uyumluysa yeşil: aynı kutunun "her şey yolunda"
+   hâli. Sarıyla aynı yerde durması önemli — kişi bakacağı yeri
+   biliyor, rengi haberi veriyor. */
+.tnote.good{border-left-color:var(--p10)}
+
+/* ---------- süreklilik ızgarası ---------- */
+
+/* Sekiz hafta × yedi gün. Sütun sayısı sabit, hücreler kalan yeri
+   paylaşıyor: 320px'te de 430px'te de ızgara taşmıyor. */
+.cgrid{
+  display:grid;grid-template-columns:repeat(7,1fr);gap:5px;
+  margin-bottom:12px;
+}
+.cday{
+  aspect-ratio:1;border-radius:4px;background:var(--sunken);
+  border:1px solid transparent;
+}
+html[data-theme="light"] .cday{background:#E7E9ED}
+.cday.on{background:var(--accent)}
+/* Bugünden sonrası henüz yaşanmadı: boş kutuyla "çalışmadım"
+   arasındaki farkı göstermek gerekiyor. */
+.cday.off{opacity:.35}
+.cday.today{border-color:var(--text-3)}
 
 /* ---------- haftalık denge ---------- */
 
@@ -416,6 +481,13 @@ html[data-theme="light"] .heroprog .bar{background:#E3E5EA}
   font-size:12px;line-height:1.5;color:var(--text-3);
 }
 .card .tabout b{color:var(--text-2)}
+
+/* Set dökümü hareketin hemen altında, girintili: hangi satıra ait
+   olduğu okunurken sorulmasın. */
+.hsets{
+  margin:-2px 0 5px 0;padding-left:1px;
+  font-size:11.5px;color:var(--text-3);font-variant-numeric:tabular-nums;
+}
 
 .hcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:15px 16px;margin-bottom:10px}
 .hhead{display:flex;align-items:center;gap:9px;margin-bottom:4px}
@@ -546,6 +618,22 @@ html[data-theme="light"] .gaugebar{background:#E3E5EA}
   font-variant-numeric:tabular-nums;
 }
 .mealnums span{display:block;font-size:11px;color:var(--text-3);margin-top:3px;font-variant-numeric:tabular-nums}
+
+/* kütüphane araması — kart genişliğinde tek satır */
+.libsearch{display:block;margin-bottom:12px}
+.libsearch input{
+  width:100%;border:1px solid var(--line);background:var(--sunken);border-radius:12px;
+  padding:11px 14px;font:inherit;font-size:14px;color:var(--text);
+  -webkit-appearance:none;appearance:none;
+}
+.libsearch input::placeholder{color:var(--text-3)}
+.libsearch input:focus{outline:none;border-color:var(--accent)}
+/* Safari'nin kendi temizleme düğmesi koyu temada görünmüyor. */
+.libsearch input::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none}
+
+#lib-count{margin:14px 0 6px}
+/* Uzun liste kartı sayfa boyu uzatmasın: kendi içinde kayar. */
+#lib-list{max-height:60vh;overflow-y:auto;overscroll-behavior-y:contain}
 
 .chips{display:flex;gap:7px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}

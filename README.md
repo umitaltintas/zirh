@@ -10,11 +10,11 @@ Program kadın ve erkek için ayrı başlangıç ağırlıkları ve ayrı kalori
 
 ## Ne yapar
 
-- **Antrenman** — Her hareket ayrı bir ekran, yatay kaydırarak geçilir. Setleri işaretlersin, ağırlığı girersin, dinlenme sayacı kendiliğinden başlar. Bir sonraki seansta her hareketin altında geçen sefer kaç kilo kaldırdığın yazar. Makine doluysa ya da o alet salonda yoksa **Değiştir** aynı kalıptan bir karşılık önerir; set ve tekrar programdan kalır. Bir harekette rekorunu kırdığın an söylenir.
+- **Antrenman** — Her hareket ayrı bir ekran, yatay kaydırarak geçilir. Setleri işaretlersin, ağırlığı girersin, dinlenme sayacı kendiliğinden başlar. Bir sonraki seansta her hareketin altında geçen sefer kaç kilo kaldırdığın yazar. Makine doluysa ya da o alet salonda yoksa **Değiştir** aynı kalıptan bir karşılık önerir; set ve tekrar programdan kalır. Son sette ağırlığı düşürdüysen ya da hedeflenen tekrarı çıkaramadıysan **Düzenle** o seti tek tek yazmanı sağlar. Bir harekette rekorunu kırdığın an söylenir.
 - **Öğün** — Profildeki kalori ve protein hedefine göre bir günlük öğün planı kurar. Beğenmezsen başka bir gün önerir.
-- **Geçmiş** — Biten seanslar ve hareket başına ağırlık seyri: küçük bir çizgi grafik, en iyi ağırlık, tahmini tek tekrar maksimumu. Bir harekette üç seanstır ağırlık artmıyorsa bunu söyler ve ne yapılacağını yazar. **Haftalık denge** son yedi günde hangi kalıba kaç set düştüğünü gösterir — itiş çekişin çok önüne geçtiyse uyarır, çünkü bedeli aylar sonra omuzda ödeniyor.
-- **Rehber** — Ağırlık artırma kuralları, seviyeler arası geçiş, haftalık düzen, kreatin.
-- **Profil** — Boy, kilo, yaş, hedef ve program seviyesi. Günlük makro hedefleri buradan hesaplanır. Kilonu her yazdığında seyre işlenir. Seviye atlamaya hazırsan — yeterince zaman, yeterince seans ve gerçek ağırlık artışı — söylenir; seçim yine senin.
+- **Geçmiş** — Son sekiz haftanın **takvimi**: hangi günlerde çalıştığın ve en uzun aran. Altında biten seanslar ve hareket başına ağırlık seyri: küçük bir çizgi grafik, en iyi ağırlık, tahmini tek tekrar maksimumu. Bir harekette üç seanstır ağırlık artmıyorsa bunu söyler ve ne yapılacağını yazar. **Haftalık denge** son yedi günde hangi kalıba kaç set düştüğünü gösterir — itiş çekişin çok önüne geçtiyse uyarır, çünkü bedeli aylar sonra omuzda ödeniyor.
+- **Rehber** — **Hareket kütüphanesi**: katalogdaki 41 hareketin tekniği ve videosu, kalıba ve alete göre süzülebilir hâlde. Yanında ağırlık artırma kuralları, seviyeler arası geçiş, haftalık düzen, kreatin.
+- **Profil** — Boy, kilo, yaş, hedef ve program seviyesi. Günlük makro hedefleri buradan hesaplanır. Kilonu her yazdığında seyre işlenir; üç haftayı geçen bir seyir hedefinle çelişiyorsa — kas diyorsun ama kilo durmuşsa — söylenir. Seviye atlamaya hazırsan — yeterince zaman, yeterince seans ve gerçek ağırlık artışı — söylenir; seçim yine senin.
 
 ### Seviyeler
 
@@ -66,10 +66,12 @@ src/
     router.js           sekmeler
     sheet.js            alttan açılan panel
     spark.js            küçük seyir çizgisi — ağırlıkta ve kiloda ortak
+    techsheet.js        teknik paneli gövdesi — seansta ve kütüphanede ortak
     timer.js            dinlenme sayacı, ekranı açık tutma
   screens/
     workout.js          yatay sayfalayıcı, set takibi
-    history.js          seans kayıtları
+    history.js          takvim, seans kayıtları, haftalık denge
+    library.js          hareket kataloğunu arama ve süzme
     profile.js          ölçüler, hedef, seviye seçimi
     meals.js            günlük öğün planı
 public/                 olduğu gibi kopyalananlar: manifest, ikonlar
@@ -85,7 +87,15 @@ tools/
 
 **Neden hareket ve program ayrı dosyada:** bir hareketin nasıl yapıldığı değişmez, kaç set yapılacağı programa göre değişir. `exercises.js` ilkini, `programs.js` ikincisini tutar. Aynı hareket beş programda geçebiliyor ve teknik anlatımı tek yerde duruyor.
 
-**Neden ilerleme hesabı ekranın dışında:** `progress.js` geçmişten seyri, tahmini 1RM'i ve platoyu çıkarır ama DOM'a dokunmaz; çizim `screens/history.js`'te kalır. `nutrition.js` ile aynı gerekçe — sayılar tek yerde durursa testte de, ileride başka bir ekranda da aynı cevabı verirler. 1RM Epley formülüyle (`ağırlık × (1 + tekrar / 30)`) ve programdaki en düşük tekrar sayısıyla hesaplanır: kaç tekrar yapıldığı kaydedilmiyor, o yüzden tahmin bilerek düşük tutuluyor. Yalnızca serbest ağırlıkta gösterilir — makinede yazan kilo o makinenin kaldıraç oranına bağlı, başka bir salonda aynı sayı bambaşka bir yük demek; karşılaştırılamayan bir rakam yazmaktansa hiç yazmıyoruz.
+**Neden ilerleme hesabı ekranın dışında:** `progress.js` geçmişten seyri, tahmini 1RM'i ve platoyu çıkarır ama DOM'a dokunmaz; çizim `screens/history.js`'te kalır. `nutrition.js` ile aynı gerekçe — sayılar tek yerde durursa testte de, ileride başka bir ekranda da aynı cevabı verirler. 1RM Epley formülüyle (`ağırlık × (1 + tekrar / 30)`) hesaplanır. Tekrarı yazdıysan gerçek sayı, yazmadıysan programın alt ucu kullanılır: tahmin, tahmin olduğu sürece bilerek düşük tutuluyor. Yalnızca serbest ağırlıkta gösterilir — makinede yazan kilo o makinenin kaldıraç oranına bağlı, başka bir salonda aynı sayı bambaşka bir yük demek; karşılaştırılamayan bir rakam yazmaktansa hiç yazmıyoruz.
+
+**Neden yalnızca sapan setler kaydediliyor:** her setin ağırlığını ve tekrarını tek tek sormak, salonda bir dokunuşluk işi üç dokunuşa çıkarırdı; setlerin çoğu zaten programda yazdığı gibi geçiyor. `active[...].adj` yalnızca farklı olanı tutar — "3. sette 5 kilo düştüm", "hedef 8'di, 6 çıktı". Boş bırakılan alan sıfır değil "programdaki gibi" demek, o yüzden yanlışlıkla açılan panel kaydı kirletmiyor. Geçmişe de aynı mantıkla giriyor: hepsi aynı ağırlıktaysa ve tekrar yazılmamışsa döküm hiç yazılmaz, düz alanlar zaten anlatıyor. Kazancı hesapta görünüyor — yapılan tekrar biliniyorsa 1RM tahmin yerine gerçek sayıyla, plato uyarısı da "ağırlık aynı ama tekrar artıyor" ayrımıyla çalışıyor.
+
+**Neden kütüphane Rehber'de:** teknik anlatımları zaten yazılıydı ama yalnızca o gün programında olan hareket için açılabiliyordu; dinlenme gününde "deadlift nasıl yapılıyordu" diye bakmanın yolu yoktu. Antrenman sekmesi yapılacak şeylerin yeri, Rehber öğrenilecek şeylerin. Altıncı bir sekme açmak da alt barı dar telefonda sıkıştırırdı. Arama Türkçe aksanları yok sayar — "gogus" yazan da "göğüs" bulur — ve hareketin İngilizce adını, Türkçe karşılığını, hedef kasını birlikte tarar.
+
+**Neden takvim sabit sekiz hafta:** takvim ayı ayın kaçında olduğunuza göre değişiyor; ayın ikisinde bakan biri neredeyse boş bir ızgara görüp "bu ay az çalışmışım" sanıyor, oysa geçen haftanın kayıtları hemen yukarıda duruyor. Sabit pencere bu yanılmayı ortadan kaldırıyor. Yanında en uzun ara da yazılı: aynı seans sayısına sahip iki kişiden biri düzenli çalışmış, diğeri üç hafta kaybetmiş olabilir — farkı söyleyen şey aralar.
+
+**Neden kilo seyri hedefle karşılaştırılıyor:** uygulama kiloya göre bir kalori hedefi hesaplıyordu ama tutturulup tutturulmadığını hiç sormuyordu. Terazi zaten söylüyor. `goalCheck` haftalık değişim hızını hedefin makul aralığıyla karşılaştırır — kas için haftada +0,1 ile +0,4 kg, yağ için −0,3 ile −0,9. En az 21 gün ister: kilo gün içinde suyla ve tuzla bir buçuk kiloya kadar oynuyor, birkaç günlük aralıktan hız çıkarmak gürültüyü gidişat sanmak olur.
 
 **Neden hareket kalıbı ayrı bir alan:** `target` alanı ("Sırt · Kanat · Biceps") insana okunsun diye yazılmış bir cümle ve otuz farklı değeri var. Haftalık dengeyi ondan saymak, aynı işi yapan iki hareketi iki ayrı kutuya düşürürdü. `group` ise beş kaba kalıp — itiş, çekiş, bacak, kalça, gövde. Yeni başlayanın gözden kaçırdığı asıl dengesizlik bu ölçekte oluyor: itiş çok, çekiş az. Mobilite hareketleri hacim sayımının tamamen dışında, yoksa haftalık denge olduğundan iyi görünürdü.
 
@@ -100,7 +110,7 @@ npm install
 npm run dev
 ```
 
-Testler: `http://localhost:5173/_test.html`. Gerçek bir iframe içinde, dört farklı ekran boyutunda çalışır — görünüm bindirmesi, sayfa taşması, seviye değişimi, seans kalıcılığı, plaka dizilimi, ısınma setleri, dinlenme sayacı, seans notu, hareket değiştirme, geçmişteki ağırlık seyri, haftalık denge, seviye önerisi, kilo seyri, rekor bildirimi, öğün planı ve masaüstü hizalaması.
+Testler: `http://localhost:5173/_test.html`. Gerçek bir iframe içinde, dört farklı ekran boyutunda çalışır — görünüm bindirmesi, sayfa taşması, seviye değişimi, seans kalıcılığı, plaka dizilimi, ısınma setleri, dinlenme sayacı, seans notu, hareket değiştirme, set başına ağırlık ve tekrar, geçmişteki ağırlık seyri, seans takvimi, haftalık denge, seviye önerisi, kilo seyri ve hedef çelişkisi, rekor bildirimi, hareket kütüphanesi, öğün planı ve masaüstü hizalaması.
 
 Dar ekranda (320×568) yalnızca "taşmıyor" demek yetmiyor: `.page` bir flex sütunu olduğu için sığmayan içerik taşmak yerine büzülüyor ve `scrollHeight` denetiminden sessizce geçiyor. O yüzden kritik parçaların gerçek yüksekliğine ve ekranın içinde kalıp kalmadıklarına ayrıca bakılıyor.
 
