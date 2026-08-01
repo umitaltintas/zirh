@@ -309,6 +309,33 @@ export function programDay(level, dayIndex){
   };
 }
 
+/* Değiştirilmiş hareketleri günün üstüne uygular.
+
+   Salonda makine dolu olabilir, o alet o salonda hiç bulunmayabilir,
+   ya da bir yerin ağrıyor olabilir. Bunların hiçbirinde doğru cevap
+   "seansı boz" değil.
+
+   Set, tekrar ve dinlenme programdan kalıyor; değişen yalnızca
+   hareketin kendisi. Hacim kararı programın, hareket seçimi salonun.
+   Kayıt geçmişe yeni hareketin adıyla girdiği için ağırlık seyri,
+   plato ve haftalık denge kendiliğinden doğru yerden sayıyor.
+
+   swapped: panelde "aslına dön" seçeneğini göstermek için; nereden
+   gelindiği ise ekranda yazılıyor, çünkü programda başka bir hareket
+   yazdığını görmek insanı tereddüte düşürüyor. */
+export function applySwaps(day, swap){
+  if(!swap || !Object.keys(swap).length) return day;
+  return {
+    ...day,
+    ex: day.ex.map((e, i) => {
+      const alt = EXERCISES[swap[i]];
+      if(!alt || swap[i] === e.id) return e;
+      return { ...alt, id: swap[i], sets: e.sets, reps: e.reps, rest: e.rest,
+               swapped: true, swappedFrom: e.name };
+    })
+  };
+}
+
 /* Gün anahtarından (A, Ü1, Ç …) çözer. Eski kayıtları geçmişe alırken
    elimizde sırası değil yalnızca anahtarı oluyor. */
 export function findDay(level, dayKey){

@@ -113,6 +113,28 @@ html[data-theme="light"] .heroprog .bar{background:#E3E5EA}
   transform:rotate(45deg);opacity:.6;
 }
 
+/* değiştirme paneli — ısınma listesiyle aynı iskelet, soldaki etiket
+   dozu değil aleti söylüyor: sorun genelde aletin kendisi. */
+.swaplist{list-style:none;margin:0 0 16px;padding:0}
+.swaplist button{
+  display:flex;gap:11px;align-items:flex-start;width:100%;
+  padding:11px 0;border:0;background:transparent;cursor:pointer;
+  font:inherit;font-size:14px;color:inherit;text-align:left;
+  border-bottom:1px solid var(--line-soft);
+}
+.swaplist li:last-child button{border-bottom:0}
+.swaplist .t{
+  font-family:var(--display);font-weight:700;font-size:12.5px;color:var(--accent);
+  flex:none;min-width:72px;padding-top:2px;text-transform:uppercase;letter-spacing:.04em;
+}
+.swaplist span.sub{display:block;color:var(--text-3);font-size:12.5px}
+.swaplist button::after{
+  content:"";width:7px;height:7px;flex:none;margin:6px 2px 0 auto;
+  border-right:2px solid var(--text-3);border-top:2px solid var(--text-3);
+  transform:rotate(45deg);opacity:.6;
+}
+.swaplist button:active{opacity:.55}
+
 /* soğuma paneli: üç hareket art arda, her biri kendi videosuyla */
 .coolpart + .coolpart{margin-top:17px;padding-top:15px;border-top:1px solid var(--line)}
 .coolpart h3{
@@ -238,6 +260,25 @@ html[data-theme="light"] .heroprog .bar{background:#E3E5EA}
 .fnote input:focus{outline:0}
 .fnote input::placeholder{color:var(--text-3)}
 
+/* Teknik ve değiştirme aynı satırda. Değiştirmeye ayrı bir satır
+   vermek dar ekranda sığmıyordu; yan yana koyunca sayfanın yüksekliği
+   hiç değişmiyor. Teknik esner, değiştirme kendi genişliğinde kalır. */
+.prow{margin-top:12px;display:flex;gap:8px;align-items:stretch}
+.prow .techrow{margin-top:0;flex:1;min-width:0}
+.swaprow{
+  flex:none;border:1px solid var(--line);background:var(--surface);
+  border-radius:13px;padding:13px 15px;cursor:pointer;
+  font-size:13.5px;font-weight:600;color:var(--text-2);white-space:nowrap;
+}
+.swaprow:active{background:var(--surface-2)}
+
+/* Programdakinden başka bir hareket yapıldığında, hangisinin yerine
+   geçtiği adın hemen altında yazıyor. */
+.swapmark{
+  color:var(--accent);font-weight:600;
+  white-space:nowrap;
+}
+
 .techrow{
   margin-top:12px;width:100%;border:1px solid var(--line);background:var(--surface);
   border-radius:13px;padding:13px 15px;cursor:pointer;
@@ -339,10 +380,36 @@ html[data-theme="light"] .heroprog .bar{background:#E3E5EA}
 }
 .tfoot b{color:var(--text-2);font-weight:700}
 .tfoot .t1rm{margin-left:auto}
-/* Plato notu sarı: kırmızı "hata yaptın" der, bu ise bir öneri. */
-.trend .tnote{
+/* Öneri kutusu — plato uyarısında ve haftalık dengede aynı biçim.
+   Sarı: kırmızı "hata yaptın" der, bu ise bir öneri. */
+.tnote{
   margin:10px 0 0;padding:9px 12px;border-left:3px solid var(--p15);border-radius:0 10px 10px 0;
   background:var(--surface-2);font-size:12.5px;line-height:1.45;color:var(--text-2);
+}
+
+/* ---------- haftalık denge ---------- */
+
+/* Çubuklar birbirine göre ölçekli, mutlak bir hedefe göre değil:
+   "haftada kaç set" sorusunun tek doğru cevabı yok. */
+.wgtop{margin:0 0 12px;font-size:12px;color:var(--text-3);font-variant-numeric:tabular-nums}
+.wgtop b{color:var(--text-2);font-weight:700}
+.wgrow{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.wgrow:last-child{margin-bottom:0}
+.wgn{flex:none;width:96px;font-size:12.5px;color:var(--text-2)}
+.wgbar{flex:1;min-width:0;height:8px;border-radius:5px;background:var(--surface-2);overflow:hidden}
+.wgbar i{display:block;height:100%;border-radius:5px;background:var(--accent)}
+.wgv{
+  flex:none;min-width:20px;text-align:right;
+  font-family:var(--display);font-weight:700;font-size:14px;
+  color:var(--text-2);font-variant-numeric:tabular-nums;
+}
+/* Geride kalan kalıp sönük çiziliyor: hangi satırın konuşulduğu
+   metni okumadan da görünsün. */
+.wgrow.low .wgbar i{background:var(--p15)}
+.wgrow.low .wgn,.wgrow.low .wgv{color:var(--p15)}
+
+@media (max-width:360px){
+  .wgn{width:74px;font-size:12px}
 }
 .card .tabout{
   margin:14px 0 0;padding-top:12px;border-top:1px solid var(--line-soft);
@@ -566,6 +633,9 @@ html[data-theme="light"] .gaugebar{background:#E3E5EA}
      yeşil düğme zaten "Seansı kaydet" diyor. Kazanılan yer nota ve
      düğmelerin nefes payına gidiyor. */
   #page-finish>.plabel{display:none}
+  /* Teknik/değiştir satırı sayfanın en altında; dar ekranda üstündeki
+     boşluk 12'den 8'e inince hareket sayfası tam sığıyor. */
+  .prow{margin-top:8px}
 }
 @media (min-width:520px){
   .hero h1{font-size:44px}

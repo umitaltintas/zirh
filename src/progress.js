@@ -13,6 +13,9 @@
 
 import { numOr0 } from "./dom.js";
 import { EXERCISES } from "./data/exercises.js";
+import { PROGRAMS } from "./data/programs.js";
+
+const WEEK = 7 * 86400000;
 
 /* Kayıtta hareketin yalnızca adı duruyor, kimliği durmuyor —
    katalog ada göre tersten kuruluyor ki step ve gear alanlarına
@@ -132,4 +135,119 @@ export function trends(history, person){
       plateau: plateauOf(pts)
     };
   }).sort((a, b) => b.last.ts - a.last.ts);
+}
+
+/* ============================================================
+   Haftalık denge.
+
+   Yeni başlayanın en sık yaptığı hata bir hareketi yanlış yapmak
+   değil, haftanın tamamına bakmayı hiç akıl etmemek. Aynada görünen
+   kaslar (göğüs, omuz, ön kol) fazla, görünmeyenler (üst sırt, arka
+   bacak) az çalışılıyor. Bunun bedeli aylar sonra omuzun öne
+   düşmesiyle ya da belin ağrımasıyla ödeniyor.
+
+   Sayım son yedi güne bakıyor, takvim haftasına değil: Pazar akşamı
+   sayacın sıfırlanması, o gün antrenman yapmış birine "bu hafta hiç
+   çalışmadın" dedirtirdi.
+
+   Tamamlanan set sayılıyor, ağırlık değil. Hacim karşılaştırması
+   ancak aynı ölçüyle anlamlı; 40 kg'lık çekiş setiyle 100 kg'lık
+   bacak setini kilo üzerinden yan yana koymak yanıltıcı olurdu.
+   ============================================================ */
+
+export const GROUPS = [
+  { key: "itis",  label: "İtiş" },
+  { key: "cekis", label: "Çekiş" },
+  { key: "bacak", label: "Bacak" },
+  { key: "kalca", label: "Kalça ve arka bacak" },
+  { key: "govde", label: "Gövde" }
+];
+
+/* Birbirini dengelemesi gereken çiftler ve dengesizliğin bedeli.
+   İtiş/çekiş omuz sağlığının, bacak/kalça diz ve belin meselesi. */
+const PAIRS = [
+  { a: "itis", b: "cekis",
+    why: "Çekiş itişin gerisinde kalınca omuz zamanla öne düşer." },
+  { a: "bacak", b: "kalca",
+    why: "Ön bacak öne geçince diz ve bel yükün fazlasını taşır." }
+];
+
+/* 1,6 kat: altında kalan fark haftanın akışından da doğabilir, üstü
+   ise artık bir eğilim. Altı setin altında hiç konuşulmuyor — iki
+   sete karşı dört set, oran olarak iki kat ama söylenecek bir şey
+   değil. */
+function balanceNote(sets){
+  for(const p of PAIRS){
+    const hi = Math.max(sets[p.a], sets[p.b]);
+    const lo = Math.min(sets[p.a], sets[p.b]);
+    if(hi < 6) continue;
+    if(lo > 0 && hi / lo < 1.6) continue;
+    const more = sets[p.a] > sets[p.b] ? p.a : p.b;
+    return { more, less: more === p.a ? p.b : p.a, hi, lo, why: p.why };
+  }
+  return null;
+}
+
+export function weekly(history, person, now = Date.now()){
+  const since = now - WEEK;
+  const sets = {};
+  GROUPS.forEach(g => { sets[g.key] = 0; });
+
+  let sessions = 0;
+  history.forEach(h => {
+    if(h.person !== person || h.ts < since) return;
+    sessions++;
+    (h.items || []).forEach(it => {
+      /* Katalogdan çıkmış eski bir ad, ya da hacim sayımına girmeyen
+         mobilite hareketi: ikisi de sessizce atlanıyor. */
+      const g = BY_NAME[it.n] && BY_NAME[it.n].group;
+      if(sets[g] != null) sets[g] += it.done || 0;
+    });
+  });
+
+  const groups = GROUPS.map(g => ({ ...g, sets: sets[g.key] }));
+  const total = groups.reduce((a, g) => a + g.sets, 0);
+  return { sessions, total, groups, note: total ? balanceNote(sets) : null };
+}
+
+/* ============================================================
+   Seviye atlama zamanı geldi mi.
+
+   Rehber sekmesi seviyelerin nasıl ilerlediğini anlatıyor ama
+   uygulama kişinin kendisine hiç "hazırsın" demiyordu; seviye elle
+   seçilen bir şey ve yeni başlayan ne zaman geçeceğini bilmiyor.
+
+   Üç koşul birden aranıyor: yeterince zaman (4 hafta), yeterince
+   tekrar (8 seans) ve gerçekten ilerleme (hareketlerin çoğunda
+   ağırlık artmış). Üçü de tutmuyorsa susuyoruz — erken atlamak,
+   hiç atlamamaktan daha pahalıya mal oluyor.
+
+   Öneri, karar değil: seviyeyi yine kişi seçiyor.
+   ============================================================ */
+export function levelHint(history, person, lvl, now = Date.now()){
+  const top = PROGRAMS[PROGRAMS.length - 1].id;
+  if(lvl >= top) return null;
+
+  const mine = history
+    .filter(h => h.person === person && h.level === lvl)
+    .sort((a, b) => a.ts - b.ts);
+  if(mine.length < 8) return null;
+
+  const weeks = Math.floor((now - mine[0].ts) / WEEK);
+  if(weeks < 4) return null;
+
+  /* Ağırlığı olan ve bu seviyede en az iki kez çalışılmış hareketler:
+     tek kayıtlı bir hareketin artıp artmadığı bilinemez. */
+  const bag = {};
+  mine.forEach(h => (h.items || []).forEach(it => {
+    const kg = numOr0(it.kg);
+    if(kg) (bag[it.n] = bag[it.n] || []).push(kg);
+  }));
+  const seen = Object.values(bag).filter(v => v.length >= 2);
+  if(seen.length < 2) return null;
+
+  const up = seen.filter(v => v[v.length - 1] > v[0]).length;
+  if(up * 2 < seen.length) return null;
+
+  return { next: lvl + 1, weeks, sessions: mine.length, up, total: seen.length };
 }

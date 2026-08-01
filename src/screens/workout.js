@@ -8,17 +8,22 @@
    ============================================================ */
 
 import { $, esc, num, numOr0, buzz, toast } from "../dom.js";
-import { db, save, session, clearSession, buildRecord, lastFor, profile } from "../store.js";
-import { programDay, totalSets, estimateMinutes, program } from "../data/programs.js";
-import { openSheet } from "../ui/sheet.js";
+import { db, save, session, clearSession, buildRecord, lastFor, bestFor, profile } from "../store.js";
+import { programDay, totalSets, estimateMinutes, program, applySwaps } from "../data/programs.js";
+import { EXERCISES } from "../data/exercises.js";
+import { openSheet, closeSheet } from "../ui/sheet.js";
 import { startTimer, hideTimer, unlockAudio, keepAwake, releaseAwake } from "../ui/timer.js";
 import { go } from "../ui/router.js";
 import { videoFor } from "../data/videos.js";
 import { warmupFor, cooldown, warmMove, warmupSets } from "../data/warmup.js";
 import { plateLine, plateSetup, sideText, barWeight } from "../data/plates.js";
 
-let pager, day, pageIx = 0, rafPending = false;
+let pager, day, baseDay, pageIx = 0, rafPending = false;
 let onSessionSaved = () => {};
+
+/* Bu seansta rekoru duyurulmuş hareketler. Aynı hareketin her setinde
+   tekrar "en iyin" demek övgüyü değersizleştirir; bir kez söylenir. */
+let praised = new Set();
 
 export const currentDay = () => day;
 
@@ -26,8 +31,12 @@ export const currentDay = () => day;
 
 export function setDay(dayIndex){
   const lvl = profile().level;
-  day = programDay(lvl, dayIndex);
+  baseDay = programDay(lvl, dayIndex);
+  /* Değiştirilen hareketler seansın içinde tutuluyor, programın değil:
+     bugün makine doluydu diye programın kendisi değişmemeli. */
+  day = applySwaps(baseDay, session(db.person, lvl, baseDay.key, false).swap);
   document.documentElement.dataset.day = String(day.index);
+  praised = new Set();
   return day;
 }
 
@@ -125,7 +134,11 @@ export function render(){
         String(day.ex.length).padStart(2, "0") +
         ' <span aria-hidden="true">·</span> ' + esc(e.target) + '</div>' +
       '<h2 class="pname">' + esc(e.name) + '</h2>' +
-      '<p class="palt">' + esc(e.alt) + '</p>' +
+      /* Değiştirilmişse nereden gelindiği yazıyor: programda başka bir
+         hareket beklerken bunu görmek insanı tereddüte düşürüyordu. */
+      '<p class="palt">' + esc(e.alt) +
+        (e.swapped ? ' <span class="swapmark">' + esc(e.swappedFrom) + ' yerine</span>' : '') +
+      '</p>' +
       '<div class="pmeta">' +
         '<div><b>' + e.sets + ' × ' + esc(e.reps) + '</b><span>Set × tekrar</span></div>' +
         '<div><b>' + e.rest + ' sn</b><span>Dinlenme</span></div>' +
@@ -136,7 +149,19 @@ export function render(){
       '<div class="pctl"><p class="plabel">Ağırlık</p>' + weight + '</div>' +
       '<div class="pctl"><p class="plabel">Setler · son 2 tekrar zorlansın</p>' +
         '<div class="setrow-big">' + setBtns + '</div></div>' +
-      '<button type="button" class="techrow" data-tech="' + i + '">Teknik, sık hata ve video</button>' +
+      /* İki düğme aynı satırda: değiştirme seçeneğinin kendine ayrı bir
+         satır alması, dar ekranda başka bir şeyi kırpardı. Üstelik karar
+         verilen an zaten burası — başparmağın durduğu yer. */
+      '<div class="prow">' +
+        /* Etiket kısaldı: yanına ikinci düğme gelince "Teknik, sık hata
+           ve video" dar ekranda iki satıra kırılıp sayfayı 20px
+           uzatıyordu. Panelin içeriği aynı, adı kısa. */
+        '<button type="button" class="techrow" data-tech="' + i + '">Teknik ve video</button>' +
+        (swapsFor(i).length
+          ? '<button type="button" class="swaprow" data-swap="' + i + '" ' +
+            'aria-label="Bu hareketin yerine başkasını seç">Değiştir</button>'
+          : '') +
+      '</div>' +
     '</section>';
   }).join("");
 
@@ -258,6 +283,94 @@ function openTech(i){
     sub: e.alt + " · " + e.target,
     html: techBody(e, videoFor(e.id))
   });
+}
+
+/* ---------- hareket değiştirme ---------- */
+
+/* Seçenekler PROGRAMDAKİ hareketin listesinden gelir, ekranda duranın
+   değil. Bir kez değiştirdikten sonra da aynı üç seçenek görünsün:
+   yoksa Leg Press yerine Goblet Squat seçen kişi, bir daha karar
+   değiştirmek istediğinde Goblet Squat'ın kendi listesine düşer ve
+   başladığı yere dönemez. */
+const swapsFor = i => (baseDay && baseDay.ex[i] && baseDay.ex[i].swap) || [];
+
+const GEAR_LABEL = {
+  bar: "Bar", ez: "EZ bar", dambil: "Dambıl",
+  makine: "Makine", vucut: "Vücut ağırlığı"
+};
+
+/* Aynı kalıptan ama farklı aletle yapılan bir hareket öneriyoruz;
+   aleti yazmak seçimi hızlandırıyor, çünkü sorun genelde aletin
+   kendisi: makine dolu, bar yok, salonda o kablo yok. */
+function swapOption(id, selected){
+  const x = EXERCISES[id];
+  if(!x) return "";
+  return '<li><button type="button" data-pick="' + esc(id) + '" ' +
+    'aria-pressed="' + (selected ? "true" : "false") + '">' +
+    '<span class="t">' + esc(GEAR_LABEL[x.gear] || x.gear) + '</span>' +
+    '<span>' + esc(x.name) + '<span class="sub">' + esc(x.alt) + '</span></span>' +
+  '</button></li>';
+}
+
+function doneSets(i){
+  const s = cur(), e = day.ex[i];
+  let n = 0;
+  for(let x = 0; x < e.sets; x++) if(s.sets[i + "-" + x]) n++;
+  return n;
+}
+
+/* Panel hangi hareket için açıldı. Panelin gövdesi her açılışta
+   yeniden kuruluyor, seçim düğmesine sırayı gömmek yerine burada
+   tutmak hem kısa hem de yanlış sıraya basma ihtimalini kaldırıyor. */
+let swapTarget = -1;
+
+function openSwap(i){
+  const orig = baseDay.ex[i], now = day.ex[i];
+  const opts = swapsFor(i);
+  if(!opts.length) return;
+  swapTarget = i;
+
+  const marked = doneSets(i);
+  const rows = (now.swapped ? [orig.id] : []).concat(opts.filter(id => id !== now.id));
+
+  openSheet({
+    title: "Yerine ne yapabilirim?",
+    sub: orig.name + " · " + orig.sets + " × " + orig.reps,
+    html:
+      '<ul class="swaplist">' +
+        rows.map(id => swapOption(id, false)).join("") +
+      '</ul>' +
+      /* İşaretli set varsa bunu önceden söylemek gerekiyor: yapılan iş
+         başka bir hareketin işiydi, yeni harekete devredilemez. */
+      (marked
+        ? '<div class="warnbox"><b>' + marked + ' set işaretli.</b> ' +
+          'Değiştirirsen bu setler ve girdiğin ağırlık silinir — ' +
+          'yapılan iş ' + esc(now.name) + '\'in işiydi.</div>'
+        : '') +
+      '<p class="note">Set, tekrar ve dinlenme programdan kalır; değişen ' +
+      'yalnızca hareket. Kayıt geçmişe gerçekten yaptığın hareketin ' +
+      'adıyla girer.</p>'
+  });
+}
+
+function doSwap(i, id){
+  const s = curW(), e = day.ex[i];
+
+  /* Setler ve ağırlık siliniyor: ikisi de az önceki hareketin
+     ölçüsüydü. Ağırlığı taşımak, dambıl bench'ini bar bench'ine
+     yazmak gibi olurdu. */
+  for(let x = 0; x < e.sets; x++) delete s.sets[i + "-" + x];
+  delete s.kg[i];
+
+  if(id === baseDay.ex[i].id) delete s.swap[i];
+  else s.swap[i] = id;
+
+  save();
+  closeSheet();
+  setDay(day.index);
+  render();
+  goPage(i + 1, true);
+  toast(day.ex[i].name + "'e geçildi");
 }
 
 /* ---------- ısınma ve soğuma ---------- */
@@ -444,8 +557,19 @@ export function initWorkout(hooks){
     const tb = ev.target.closest("[data-tech]");
     if(tb) return openTech(+tb.dataset.tech);
 
+    const sw = ev.target.closest("[data-swap]");
+    if(sw) return openSwap(+sw.dataset.swap);
+
     const wb = ev.target.closest("[data-warm]");
     if(wb) openWarm(wb.dataset.warm);
+  });
+
+  /* Seçim panelin içinde yapılıyor; panel gövdesi pager'ın dışında,
+     o yüzden kendi dinleyicisi gerekiyor. Hangi hareket için açıldığı
+     panelde saklı değil — açan sayfanın sırası tutuluyor. */
+  $("sheet-body").addEventListener("click", ev => {
+    const pick = ev.target.closest("[data-pick]");
+    if(pick && swapTarget >= 0) doSwap(swapTarget, pick.dataset.pick);
   });
 
   pager.addEventListener("input", ev => {
@@ -513,6 +637,7 @@ function toggleSet(sb){
   const e = day.ex[ix];
   startTimer(e.rest, e.name, nextUp(ix));
   save(); refresh();
+  praise(e, ix);
 
   /* Hareket bittiyse kendiliğinden sıradakine geç — elle kaydırma derdi olmasın.
      Kullanıcı bu arada başka sayfaya kaydıysa karışma. */
@@ -521,6 +646,22 @@ function toggleSet(sb){
   if(all && pageIx === ix + 1){
     setTimeout(() => { if(pageIx === ix + 1) goPage(ix + 2); }, 700);
   }
+}
+
+/* Rekor, seti işaretlediğin anda söyleniyor — ağırlığı yazarken değil.
+   Yazarken söylemek, henüz kaldırmadığın bir sayıyı kutlamak olurdu;
+   üstelik her tuş vuruşunda bir kez.
+
+   Geçmişi hiç olmayan harekette susuluyor: ilk kayıt teknik olarak
+   "en iyi" ama kutlanacak bir şey değil, kıyaslanan bir şey yok. */
+function praise(e, ix){
+  if(e.bw || praised.has(e.name)) return;
+  const now = numOr0(cur().kg[ix]);
+  if(!(now > 0)) return;
+  const best = bestFor(db.person, e.name);
+  if(!best || now <= best) return;
+  praised.add(e.name);
+  toast(e.name + " · " + num(now) + " kg, en iyin");
 }
 
 function stepWeight(i, dir){

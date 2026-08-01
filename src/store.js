@@ -6,7 +6,8 @@
    göçler eski kayıtların kaybolmamasını sağlıyor.
    ============================================================ */
 
-import { PROGRAMS, DEFAULT_LEVEL } from "./data/programs.js";
+import { PROGRAMS, DEFAULT_LEVEL, applySwaps } from "./data/programs.js";
+import { EXERCISES } from "./data/exercises.js";
 
 const KEY = "zirh.v1";
 const OLD_KEY = "fit216.v1";   /* uygulama Fit216 adıyla yayınlanmıştı */
@@ -20,8 +21,8 @@ export const db = {
   person: "erkek",
   theme: null,
   schema: 2,
-  active: {},    /* [person]["<seviye>:<gün>"] = {date, sets, kg, note, startedAt} */
-  profile: {},   /* [person] = {h, w, goal, level} */
+  active: {},    /* [person]["<seviye>:<gün>"] = {date, sets, kg, swap, note, startedAt} */
+  profile: {},   /* [person] = {h, w, goal, level, wlog} */
   history: []    /* [{ts, person, level, day, title, dur, items, note?}] */
 };
 
@@ -111,6 +112,33 @@ export function level(person = db.person){
   return profile(person).level;
 }
 
+/* Kilo ölçümünü seyre işler. Günde tek kayıt: kilo gün içinde suyla,
+   yemekle, tuzla bir buçuk kiloya kadar oynuyor; aynı gün üç kez
+   tartılan birinin grafiği o gürültüyü ilerleme gibi gösterirdi.
+   Aynı gün yeniden yazılırsa son değer geçerli sayılıyor.
+
+   Tarih gün olarak tutuluyor, zaman damgası olarak değil — saat
+   bilgisinin sorulacak bir sorusu yok, üstelik "aynı gün mü"
+   karşılaştırmasını da kolaylaştırıyor.
+
+   Geriye true dönerse çizilecek yeni bir şey var demektir. */
+export function logWeight(w, person = db.person){
+  if(!(w > 0)) return false;
+  const p = profile(person);
+  if(!Array.isArray(p.wlog)) p.wlog = [];
+
+  const d = todayStr();
+  const last = p.wlog[p.wlog.length - 1];
+  if(last && last.d === d){
+    if(last.w === w) return false;
+    last.w = w;
+  }else{
+    p.wlog.push({ d, w });
+  }
+  save();
+  return true;
+}
+
 /* ---------- aktif seans ---------- */
 
 export const sessionKey = (lvl, dayKey) => lvl + ":" + dayKey;
@@ -120,7 +148,7 @@ export const todayStr = () =>
   String(new Date().getMonth() + 1).padStart(2, "0") + "-" +
   String(new Date().getDate()).padStart(2, "0");
 
-const blank = () => ({ date: todayStr(), sets: {}, kg: {}, note: "", startedAt: 0 });
+const blank = () => ({ date: todayStr(), sets: {}, kg: {}, swap: {}, note: "", startedAt: 0 });
 
 export function session(person, lvl, dayKey, create){
   if(!db.active[person]) db.active[person] = {};
@@ -131,6 +159,10 @@ export function session(person, lvl, dayKey, create){
     s = blank();
     db.active[person][k] = s;
   }
+  /* Hareket değiştirme sonradan geldi; yarım kalmış eski bir seansta
+     bu alan yok. Şema sürümü artmıyor — not alanıyla aynı gerekçe,
+     alan isteğe bağlı ve eksikliği boş nesneye eşit. */
+  if(!s.swap) s.swap = {};
   return s;
 }
 
@@ -174,7 +206,10 @@ export function sweepStale(resolveDay){
       if(Object.keys(s.sets || {}).length > 0){
         const [lvl, dayKey] = k.split(":");
         const day = resolveDay(+lvl, dayKey);
-        if(day) db.history.push(buildRecord(pk, day, s));
+        /* Değiştirilmiş hareket burada da uygulanmalı: gece yarısını
+           geçen seans geçmişe gerçekten yaptığın hareketin adıyla
+           girsin, programda yazan adla değil. */
+        if(day) db.history.push(buildRecord(pk, applySwaps(day, s.swap), s));
       }
       delete db.active[pk][k];
     });
@@ -184,6 +219,28 @@ export function sweepStale(resolveDay){
 
 /* Bir hareketin bu kişideki son kaydı — seviyeden bağımsız, çünkü
    aynı hareket birden çok programda geçebiliyor. */
+/* Bir hareketin bu kişideki en iyi ağırlığı. Rekoru tam o anda —
+   ağırlığı yazıp ilk seti işaretlediğinde — söyleyebilmek için.
+   Vücut ağırlığı hareketlerinde kilo diye bir şey yok, 0 dönüyor.
+
+   trends() de aynı sayıyı hesaplıyor ama bütün geçmişi hareket
+   hareket topluyor; salonda tek bir hareket için tüm listeyi kurmak
+   gereksiz iş. */
+export function bestFor(person, exName){
+  const e = EXERCISES[exName] || Object.values(EXERCISES).find(x => x.name === exName);
+  if(e && e.bw) return 0;
+  let best = 0;
+  db.history.forEach(h => {
+    if(h.person !== person) return;
+    (h.items || []).forEach(it => {
+      if(it.n !== exName || !it.done) return;
+      const kg = parseFloat(String(it.kg).replace(",", "."));
+      if(kg > best) best = kg;
+    });
+  });
+  return best;
+}
+
 export function lastFor(person, exName){
   for(let i = db.history.length - 1; i >= 0; i--){
     const h = db.history[i];

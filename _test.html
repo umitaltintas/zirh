@@ -599,9 +599,263 @@ function run(){
        d.querySelectorAll("#g-list .hnote").length + " not kutusu");
 
     f.remove();
+
+    /* ---- 6. hareket değiştirme ----
+       Temiz bir seansla başlıyoruz: bir önceki basamak kaydettiği
+       için aktif seans kalmadı. */
+    return frame(390, 844);
+  }).then(function(f){
+    var d = f.contentDocument, w = f.contentWindow;
+    d.getElementById("begin").click();
+
+    var ilk = d.querySelector("#ex-0 .pname").textContent;
+    ok("değiştir düğmesi hareket sayfasında",
+       !!d.querySelector('#ex-0 [data-swap]'));
+    /* Vücut ağırlığı hareketlerinin de karşılığı var; karşılığı
+       olmayan (Shrug, Calf Raise) düğmeyi hiç göstermiyor. */
+    ok("karşılığı olmayan harekette değiştir düğmesi yok",
+       (function(){
+         var pages = d.querySelectorAll(".page.dyn"), eksik = 0;
+         pages.forEach(function(pg){
+           if(/Shrug|Calf Raise/.test(pg.querySelector(".pname").textContent) &&
+              pg.querySelector("[data-swap]")) eksik++;
+         });
+         return eksik === 0;
+       })());
+
+    /* Ağırlık ve bir set gir: değiştirince ikisinin de silinmesi
+       gerekiyor, çünkü ikisi de başka bir hareketin ölçüsüydü. */
+    var kgi = d.querySelector('#ex-0 [data-kg="0"]');
+    kgi.value = "40";
+    kgi.dispatchEvent(new w.Event("input", { bubbles: true }));
+    d.querySelector('#ex-0 .setbtn').click();
+
+    d.querySelector('#ex-0 [data-swap]').click();
+    var secenekler = d.querySelectorAll("#sheet-body [data-pick]");
+    ok("değiştir paneli seçenek sunuyor", secenekler.length >= 2,
+       secenekler.length + " seçenek");
+    ok("işaretli set varsa panel uyarıyor",
+       !!d.querySelector("#sheet-body .warnbox") &&
+       /1 set işaretli/.test(d.querySelector("#sheet-body .warnbox").textContent),
+       d.querySelector("#sheet-body .warnbox")
+         ? d.querySelector("#sheet-body .warnbox").textContent : "uyarı yok");
+
+    var setSayisi = d.querySelectorAll("#ex-0 .setbtn").length;
+    var tekrar = d.querySelector("#ex-0 .pmeta b").textContent;
+    secenekler[0].click();
+
+    ok("hareket değişti", d.querySelector("#ex-0 .pname").textContent !== ilk,
+       ilk + " → " + d.querySelector("#ex-0 .pname").textContent);
+    ok("hangisinin yerine geçtiği yazıyor",
+       !!d.querySelector("#ex-0 .swapmark") &&
+       new RegExp(ilk).test(d.querySelector("#ex-0 .swapmark").textContent),
+       d.querySelector("#ex-0 .swapmark")
+         ? d.querySelector("#ex-0 .swapmark").textContent : "işaret yok");
+    /* Hacim kararı programın: set ve tekrar değişmemeli. */
+    ok("set ve tekrar programdan kalıyor",
+       d.querySelectorAll("#ex-0 .setbtn").length === setSayisi &&
+       d.querySelector("#ex-0 .pmeta b").textContent === tekrar,
+       d.querySelector("#ex-0 .pmeta b").textContent);
+    ok("önceki hareketin setleri silindi",
+       d.querySelector('#ex-0 .setbtn').getAttribute("aria-pressed") === "false");
+    ok("önceki hareketin ağırlığı silindi",
+       d.querySelector('#ex-0 [data-kg="0"]').value === "",
+       d.querySelector('#ex-0 [data-kg="0"]').value);
+    ok("panel seçimden sonra kapandı",
+       !d.getElementById("sheet").classList.contains("on"));
+
+    var yeni = d.querySelector("#ex-0 .pname").textContent;
+    f.remove();
+    return frame(390, 844).then(function(f2){ return [f2, ilk, yeni]; });
+  }).then(function(arr){
+    var f = arr[0], ilk = arr[1], yeni = arr[2];
+    var d = f.contentDocument;
+
+    ok("değişiklik yeniden yüklemede duruyor",
+       d.querySelector("#ex-0 .pname").textContent === yeni,
+       d.querySelector("#ex-0 .pname").textContent);
+
+    /* Kayıt geçmişe GERÇEKTEN yapılan hareketin adıyla girmeli:
+       ağırlık seyri, plato ve haftalık denge oradan sayıyor. */
+    d.getElementById("begin").click();
+    d.querySelector('#ex-0 .setbtn').click();
+    d.getElementById("finish").click();
+    var st = JSON.parse(localStorage.getItem("zirh.v1"));
+    var rec = st.history[st.history.length - 1];
+    ok("kayıt değiştirilen hareketin adıyla giriyor",
+       rec.items.some(function(it){ return it.n === yeni; }) &&
+       !rec.items.some(function(it){ return it.n === ilk; }),
+       JSON.stringify(rec.items.map(function(it){ return it.n; })));
+    ok("seans kaydedilince değişiklik de temizlendi",
+       !st.active.erkek || !st.active.erkek["3:B"],
+       JSON.stringify(st.active.erkek));
+
+    f.remove();
+
+    /* ---- 7. haftalık denge, seviye önerisi, kilo seyri ---- */
+    var st2 = JSON.parse(localStorage.getItem("zirh.v1"));
+    var D = 86400000, now = Date.now();
+    function sess(gunOnce, items, lvl){
+      return { ts: now - gunOnce * D, person: "erkek", level: lvl || 1, day: "A",
+               title: "İtiş, çekiş, bacak", dur: 45, items: items };
+    }
+    function it(n, done, kg){
+      return { n: n, done: done, total: done, reps: "10-12", kg: kg };
+    }
+    var h = [];
+    /* 12 haftadır 1. seviyede ve ağırlıklar artıyor → seviye önerisi. */
+    for(var i = 12; i >= 3; i--){
+      h.push(sess(i * 7, [ it("Machine Chest Press", 3, String(30 + i)),
+                           it("Seated Cable Row", 3, String(25 + i)),
+                           it("Leg Press", 3, String(50 + i * 2)) ]));
+    }
+    /* Son yedi gün: itiş bol, çekiş az. Wall Angel mobilite —
+       çekiş hacmine sayılmamalı. */
+    h.push(sess(1, [ it("Machine Chest Press", 4, "45"), it("Cable Fly", 4, "15"),
+                     it("Lateral Raise", 4, "8"), it("Seated Cable Row", 3, "38"),
+                     it("Leg Press", 4, "80") ]));
+    h.push(sess(4, [ it("Machine Chest Press", 4, "45"), it("Wall Angel", 3, ""),
+                     it("Leg Press", 4, "78") ]));
+    st2.history = h;
+    st2.profile.erkek.level = 1;
+    st2.profile.erkek.w = "80";
+    delete st2.profile.erkek.wlog;
+    localStorage.setItem("zirh.v1", JSON.stringify(st2));
+
+    return frame(390, 844);
+  }).then(function(f){
+    var d = f.contentDocument, w = f.contentWindow;
+    d.getElementById("tab-gecmis").click();
+
+    function bar(ad){
+      var hit = null;
+      d.querySelectorAll("#g-week .wgrow").forEach(function(el){
+        if(el.querySelector(".wgn").textContent === ad) hit = el;
+      });
+      return hit;
+    }
+    var deger = function(ad){ return +bar(ad).querySelector(".wgv").textContent; };
+
+    ok("haftalık denge yalnızca son 7 günü sayıyor",
+       /2 seans/.test(d.querySelector("#g-week .wgtop").textContent),
+       d.querySelector("#g-week .wgtop").textContent);
+    ok("itiş setleri toplandı", deger("İtiş") === 16, deger("İtiş") + " set");
+    /* Wall Angel 3 set yaptı ama mobilite; çekiş yalnızca Seated
+       Cable Row'un 3 seti olmalı. */
+    ok("mobilite hareketi hacme sayılmıyor", deger("Çekiş") === 3,
+       deger("Çekiş") + " set");
+    ok("bacak setleri kendi kutusunda", deger("Bacak") === 8, deger("Bacak") + " set");
+
+    ok("itiş çekişin çok önündeyse söyleniyor", !!d.querySelector("#g-week .tnote"));
+    ok("uyarı rakamı ve yapılacağı yazıyor",
+       /16 set itiş, 3 set çekiş/.test(d.querySelector("#g-week .tnote").textContent) &&
+       /atlama/.test(d.querySelector("#g-week .tnote").textContent),
+       d.querySelector("#g-week .tnote").textContent);
+    ok("geride kalan kalıp işaretli", bar("Çekiş").classList.contains("low"));
+    ok("önde olan kalıp işaretsiz", !bar("İtiş").classList.contains("low"));
+
+    /* ---- seviye önerisi ---- */
+    d.getElementById("tab-profil").click();
+    var hint = d.getElementById("lvl-hint");
+    ok("hazır olunca seviye önerisi çıkıyor", !!hint.querySelector(".tnote"));
+    ok("öneri gerekçesini söylüyor",
+       /12 haftadır/.test(hint.textContent) && /2\. seviyeye/.test(hint.textContent),
+       hint.textContent);
+    /* Öneri, karar değil: seviye düğmeleri yerinde duruyor. */
+    ok("seviye yine elle seçiliyor",
+       d.querySelectorAll('#levels [data-level]').length === 5);
+
+    /* ---- kilo seyri ---- */
+    ok("tek ölçümle grafik çizilmiyor", !d.querySelector("#pf-wlog .spark"),
+       d.getElementById("pf-wlog").textContent.slice(0, 40));
+
+    var wi = d.getElementById("pf-w");
+    function tart(v){
+      wi.value = v;
+      wi.dispatchEvent(new w.Event("input", { bubbles: true }));
+      wi.dispatchEvent(new w.Event("change", { bubbles: true }));
+    }
+    tart("79,5");
+    var log = function(){
+      return JSON.parse(localStorage.getItem("zirh.v1")).profile.erkek.wlog || [];
+    };
+    ok("kilo ölçümü seyre yazıldı", log().length === 1 && log()[0].w === 79.5,
+       JSON.stringify(log()));
+
+    /* Aynı gün ikinci kez tartılmak yeni bir ölçüm değil: kilo gün
+       içinde oynuyor, her tartı bir satır olsaydı grafik gürültüden
+       ibaret kalırdı. */
+    tart("79");
+    ok("aynı gün ikinci ölçüm üstüne yazıyor",
+       log().length === 1 && log()[0].w === 79, JSON.stringify(log()));
+
+    /* Geçmiş bir ölçüm ekleyip grafiğin çizildiğini görelim. */
+    var raw = JSON.parse(localStorage.getItem("zirh.v1"));
+    raw.profile.erkek.wlog.unshift({ d: "2026-05-01", w: 84 });
+    localStorage.setItem("zirh.v1", JSON.stringify(raw));
+
+    f.remove();
+    return frame(390, 844);
+  }).then(function(f){
+    var d = f.contentDocument;
+    d.getElementById("tab-profil").click();
+    ok("iki ölçümden sonra kilo grafiği çiziliyor", !!d.querySelector("#pf-wlog .spark"));
+    ok("kilo grafiğinin sesli okuyucu karşılığı var",
+       /84, 79 kg/.test(d.querySelector("#pf-wlog .spark").getAttribute("aria-label")),
+       d.querySelector("#pf-wlog .spark").getAttribute("aria-label"));
+    ok("kilo farkı yazılı",
+       /-5 kg/.test(d.querySelector("#pf-wlog .tfoot").textContent),
+       d.querySelector("#pf-wlog .tfoot").textContent);
+
+    /* ---- rekor anı ---- */
+    /* Geçmişte Leg Press en iyi 80 kg. 85 yazıp set işaretleyince
+       söylenmeli; 70 yazınca susulmalı. */
+    d.getElementById("tab-antrenman").click();
+    /* Leg Press 1. seviyenin A gününde; hangi günde kalındığı
+       önceki basamaklara bağlı olduğu için açıkça seçiliyor. */
+    d.querySelectorAll('#days [data-day]')[0].click();
+    d.getElementById("begin").click();
+
+    function legPress(){
+      var hit = null;
+      d.querySelectorAll(".page.dyn").forEach(function(pg){
+        if(pg.querySelector(".pname").textContent === "Leg Press") hit = pg;
+      });
+      return hit;
+    }
+    var pg = legPress();
+    ok("1. seviyede Leg Press sayfası var", !!pg);
+
+    var w2 = f.contentWindow;
+    function yaz(pg, v){
+      var i = pg.querySelector("[data-kg]");
+      i.value = v;
+      i.dispatchEvent(new w2.Event("input", { bubbles: true }));
+    }
+    var toastEl = d.getElementById("toast");
+
+    yaz(pg, "70");
+    pg.querySelector(".setbtn").click();
+    ok("rekorun altında kalınca bir şey denmiyor",
+       !/en iyin/.test(toastEl.textContent), toastEl.textContent);
+
+    pg.querySelector(".setbtn").click();   /* geri al */
+    yaz(pg, "85");
+    pg.querySelectorAll(".setbtn")[1].click();
+    ok("rekor kırılınca söyleniyor",
+       /Leg Press/.test(toastEl.textContent) && /85 kg, en iyin/.test(toastEl.textContent),
+       toastEl.textContent);
+
+    /* Aynı hareketin her setinde tekrarlanmıyor: övgü değersizleşir. */
+    toastEl.textContent = "";
+    pg.querySelectorAll(".setbtn")[2].click();
+    ok("rekor aynı seansta bir kez söyleniyor",
+       !/en iyin/.test(toastEl.textContent), toastEl.textContent);
+
+    f.remove();
     return frame(1280, 900);
   }).then(function(f){
-    /* ---- 6. masaüstü ---- */
+    /* ---- 8. masaüstü ---- */
     var d = f.contentDocument;
     var btns = d.querySelectorAll(".tabs button");
     var first = btns[0].getBoundingClientRect();

@@ -3,7 +3,8 @@
 import { $, esc, num, toast, trDate } from "../dom.js";
 import { db, save, PEOPLE } from "../store.js";
 import { program } from "../data/programs.js";
-import { trends, deload } from "../progress.js";
+import { trends, deload, weekly, GROUPS } from "../progress.js";
+import { sparkHTML } from "../ui/spark.js";
 
 export function renderHistory(){
   const mine = db.history.filter(h => h.person === db.person).sort((a, b) => b.ts - a.ts);
@@ -23,46 +24,53 @@ export function renderHistory(){
     $("g-last").textContent = "—";
   }
 
+  renderWeekly();
   renderTrends();
   renderList(mine);
 }
 
-/* ---------- hareket başına ilerleme ---------- */
+/* ---------- haftalık denge ---------- */
 
-/* Sparkline sabit bir viewBox'a çizilir, genişliğe CSS uydurur:
-   ölçü hesabı tek yerde kalır ve çizgi kalınlığı ekranla birlikte
-   oransal büyür. Eksen etiketi yok — telefonda kalabalık yapıyor ve
-   okunmuyor; anlamlı sayılar zaten grafiğin üstünde ve altında
-   yazılı. Grafiğin işi rakam vermek değil, şekli göstermek. */
-const SW = 240, SH = 44, PAD = 5;
+/* Çubuklar birbirine göre ölçekleniyor, mutlak bir hedefe göre değil:
+   "haftada kaç set" sorusunun tek doğru cevabı yok ve olmayan bir
+   hedefi çizmek uydurma olurdu. Gösterilen şey oran — hangi kalıp
+   diğerlerinin önüne geçmiş. */
+function renderWeekly(){
+  const w = weekly(db.history, db.person);
+  const box = $("g-week");
 
-const r1 = n => Math.round(n * 10) / 10;
+  if(!w.total){
+    box.innerHTML = '<p class="note" style="margin:0">Son yedi günde kayıtlı set yok. ' +
+      'Bir seans bitirdiğinde hangi kalıba ne kadar çalıştığın burada görünecek.</p>';
+    return;
+  }
 
-function sparkHTML(kgs){
-  const lo = Math.min(...kgs), hi = Math.max(...kgs);
-  const inner = SH - PAD * 2;
-  const x = i => PAD + i * (SW - PAD * 2) / (kgs.length - 1);
-  /* Bütün kayıtlar aynı ağırlıktaysa aralık sıfır — çizgi ortadan
-     düz geçsin, sıfıra bölme olmasın. */
-  const y = v => hi === lo ? SH / 2 : PAD + inner - (v - lo) / (hi - lo) * inner;
+  const max = Math.max(...w.groups.map(g => g.sets));
+  const bars = w.groups.map(g =>
+    '<div class="wgrow' + (w.note && g.key === w.note.less ? " low" : "") + '">' +
+      '<span class="wgn">' + esc(g.label) + '</span>' +
+      '<span class="wgbar"><i style="width:' +
+        (max ? Math.round(g.sets / max * 100) : 0) + '%"></i></span>' +
+      '<span class="wgv">' + g.sets + '</span>' +
+    '</div>'
+  ).join("");
 
-  const pts = kgs.map((v, i) => r1(x(i)) + "," + r1(y(v)));
-  const area = "M" + pts.join(" L") +
-               " L" + r1(SW - PAD) + "," + SH + " L" + PAD + "," + SH + " Z";
-  /* Nokta sayısı arttıkça işaretçiler çizgiyi yiyor; kalabalıkta
-     yalnızca çizgi ve son nokta kalır. */
-  const dots = kgs.length <= 10
-    ? kgs.map((v, i) => '<circle class="pt" cx="' + r1(x(i)) + '" cy="' + r1(y(v)) + '" r="2.4"/>').join("")
-    : "";
+  const label = k => (GROUPS.find(g => g.key === k) || {}).label.toLocaleLowerCase("tr");
 
-  return '<svg class="spark" viewBox="0 0 ' + SW + ' ' + SH + '" role="img" ' +
-      'aria-label="Ağırlık seyri: ' + esc(kgs.map(num).join(", ")) + ' kg">' +
-      '<path class="area" d="' + area + '"/>' +
-      '<polyline class="line" points="' + pts.join(" ") + '"/>' + dots +
-      '<circle class="now" cx="' + r1(x(kgs.length - 1)) + '" ' +
-        'cy="' + r1(y(kgs[kgs.length - 1])) + '" r="3.4"/>' +
-    '</svg>';
+  /* Uyarı değil öneri: ne olduğunu söyler, ne yapılacağını yazar.
+     Rakamı da yazıyor, çünkü "dengesiz" demek tek başına ölçüsüz. */
+  const note = w.note
+    ? '<p class="tnote">Bu hafta ' + w.note.hi + ' set ' + esc(label(w.note.more)) +
+      ', ' + w.note.lo + ' set ' + esc(label(w.note.less)) + '. ' + esc(w.note.why) +
+      ' Sıradaki seansta ' + esc(label(w.note.less)) + ' hareketlerini atlama.</p>'
+    : '';
+
+  box.innerHTML =
+    '<p class="wgtop">Son 7 gün · <b>' + w.sessions + '</b> seans, <b>' + w.total + '</b> set</p>' +
+    bars + note;
 }
+
+/* ---------- hareket başına ilerleme ---------- */
 
 /* Plato metni Rehber'in 2. ve 3. kurallarının aynısını söyler, tek
    farkı hareketin adını ve rakamı bilmesi. Uyarı değil öneri: ne
