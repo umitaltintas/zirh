@@ -87,8 +87,15 @@ export default defineConfig({
         globPatterns: ["**/*.{js,css,html,png,webmanifest}"],
 
         /* Testler yayında dursun ama önbelleğe girmesin: salonda
-           çevrimdışı açılması gereken şey uygulama. */
-        globIgnores: ["**/_test.html"],
+           çevrimdışı açılması gereken şey uygulama.
+
+           Açılış kareleri de dışarıda. On altı cihaz ölçüsü var,
+           bir telefon bunlardan en fazla birini kullanıyor; hepsini
+           indirmek önbelleği dörtte bir megabayt şişirirdi. Üstelik
+           kareyi gösteren service worker değil, iOS'un kendisi:
+           uygulama ana ekrana eklenirken kopyalıyor ve o kopyayı
+           gösteriyor — uygulama daha açılmamışken. */
+        globIgnores: ["**/_test.html", "splash/**"],
 
         /* Adres ne olursa olsun uygulamayı aç. Tek sayfalık bir
            arayüz; derin bağlantı yok. */

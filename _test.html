@@ -1289,9 +1289,55 @@ function run(){
     ok("grafik yine de çiziliyor", !!d.querySelector("#pf-wlog .spark"));
 
     f.remove();
-    return frame(1280, 900);
+
+    /* ---- 14. iOS açılış kareleri ---- */
+    return frame(390, 844);
   }).then(function(f){
-    /* ---- 14. masaüstü ---- */
+    var d = f.contentDocument;
+    var links = Array.prototype.slice.call(
+      d.querySelectorAll('link[rel="apple-touch-startup-image"]'));
+
+    ok("açılış kareleri bağlı", links.length >= 10, links.length + " etiket");
+
+    /* iOS kareyi ÖLÇEKLEMİYOR: piksel ölçüsü medya sorgusundakiyle
+       birebir tutmazsa hiçbirini kullanmıyor ve ekran boş kalıyor.
+       Dosya adındaki ölçü ile sorgudaki ölçü × piksel oranı aynı
+       sayıyı vermeli. */
+    var tutarsiz = links.filter(function(l){
+      var m = /splash-(\d+)x(\d+)\.png/.exec(l.href);
+      var q = /device-width:(\d+)px.*device-height:(\d+)px.*pixel-ratio:(\d+)/.exec(l.media);
+      if(!m || !q) return true;
+      return +m[1] !== +q[1] * +q[3] || +m[2] !== +q[2] * +q[3];
+    }).map(function(l){ return l.getAttribute("href"); });
+    ok("dosya ölçüsü medya sorgusuyla uyumlu", tutarsiz.length === 0,
+       tutarsiz.join(", "));
+
+    ok("her cihaz için ayrı kare var",
+       new Set(links.map(function(l){ return l.media; })).size === links.length);
+
+    /* Etiketler ile dosyalar ayrı ellerde tutulursa biri güncellenip
+       diğeri unutulur; iOS de boş ekran gösterip susar. Eski sw.js
+       dosya listesiyle aynı sınıftan bir hata — o yüzden sınanıyor.
+
+       "200 döndü" yetmiyor: eksik dosyayı hem geliştirme sunucusu hem
+       service worker uygulamanın kendisiyle karşılıyor, yani cevap
+       başarılı ama içerik HTML. Gelenin görsel olduğuna bakılıyor. */
+    return Promise.all(links.map(function(l){
+      return fetch(l.href, { method: "HEAD" })
+        .then(function(r){
+          var tur = r.headers.get("content-type") || "";
+          return r.ok && tur.indexOf("image/") === 0
+            ? null : l.getAttribute("href") + " → " + (r.status + " " + tur);
+        })
+        .catch(function(){ return l.getAttribute("href") + " → ulaşılamadı"; });
+    })).then(function(eksik){
+      eksik = eksik.filter(Boolean);
+      ok("her etiketin dosyası yerinde", eksik.length === 0, eksik.join(", "));
+      f.remove();
+      return frame(1280, 900);
+    });
+  }).then(function(f){
+    /* ---- 15. masaüstü ---- */
     var d = f.contentDocument;
     var btns = d.querySelectorAll(".tabs button");
     var first = btns[0].getBoundingClientRect();

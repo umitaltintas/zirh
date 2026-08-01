@@ -30,7 +30,7 @@ Program kadın ve erkek için ayrı başlangıç ağırlıkları ve ayrı kalori
 
 Tarayıcı menüsünden **Ana ekrana ekle** dendiğinde uygulama gibi açılır ve internet olmadan da çalışır. Salonda çekim zayıfsa sorun çıkarmaz.
 
-iPhone'da otomatik kurulum önerisi çıkmaz; Safari'de **Paylaş → Ana Ekrana Ekle** demek gerekir.
+iPhone'da otomatik kurulum önerisi çıkmaz; Safari'de **Paylaş → Ana Ekrana Ekle** demek gerekir. Ana ekrandan açıldığında uygulama yüklenene kadar kalkan nişanı görünür.
 
 ## Veri
 
@@ -75,9 +75,11 @@ src/
     profile.js          ölçüler, hedef, seviye seçimi
     meals.js            günlük öğün planı
 public/                 olduğu gibi kopyalananlar: manifest, ikonlar
+  splash/               iOS açılış kareleri — üretilir, elle düzenlenmez
 _test.html              tarayıcıda açılan gerileme testleri
 tools/
   run-tests.mjs         testleri başsız tarayıcıda koşturur
+  make-splash.mjs       açılış karelerini ve link etiketlerini üretir
   video-check.sh        video kimlikleri hâlâ ayakta mı, yeterli mi
 .github/workflows/
   deploy.yml            derle → test et → yayınla
@@ -100,6 +102,10 @@ tools/
 **Neden hareket kalıbı ayrı bir alan:** `target` alanı ("Sırt · Kanat · Biceps") insana okunsun diye yazılmış bir cümle ve otuz farklı değeri var. Haftalık dengeyi ondan saymak, aynı işi yapan iki hareketi iki ayrı kutuya düşürürdü. `group` ise beş kaba kalıp — itiş, çekiş, bacak, kalça, gövde. Yeni başlayanın gözden kaçırdığı asıl dengesizlik bu ölçekte oluyor: itiş çok, çekiş az. Mobilite hareketleri hacim sayımının tamamen dışında, yoksa haftalık denge olduğundan iyi görünürdü.
 
 **Hareket değiştirme nerede duruyor:** seçim seansın içinde (`active[...].swap`), programın içinde değil — bugün makine doluydu diye programın kendisi değişmemeli. Set, tekrar ve dinlenme programdan kalır; hacim kararı programın, hareket seçimi salonun. Kayıt geçmişe gerçekten yapılan hareketin adıyla girdiği için ağırlık seyri, plato ve haftalık denge kendiliğinden doğru yerden sayar. Değiştirince o hareketin setleri ve ağırlığı siliniyor: ikisi de az önceki hareketin ölçüsüydü.
+
+**Açılış karesi neden çiziliyor değil hesaplanıyor:** ana ekrandan açılan bir PWA'da iOS, uygulama yüklenene kadar `apple-touch-startup-image` ile verilen kareyi gösterir; verilmezse ekran boş kalıyordu. iOS bu görseli ölçeklemiyor — cihazın piksel ölçüsüyle birebir eşleşeni arıyor, bulamazsa hiçbirini kullanmıyor. On altı ölçü demek on altı dosya demek, elle çizilecek bir şey değil. `tools/make-splash.mjs` kareleri başlıktaki markanın **aynı SVG yolundan** üretiyor: elle çizilen bir PNG, logo değiştiğinde sessizce eskirdi. Araç `index.html`'deki link etiketlerini de kendisi yazıyor, çünkü dosya listesiyle etiket listesini ayrı ellerde tutmak eski `sw.js` dosya listesiyle aynı sınıftan bir hata — biri güncellenip diğeri unutulduğunda hiçbir şey bağırmıyor. Testler her etiketin karşılığında gerçekten bir görsel olduğunu doğruluyor; "200 döndü" yetmiyor, çünkü eksik dosyayı hem geliştirme sunucusu hem service worker uygulamanın kendisiyle karşılıyor.
+
+Kareler service worker önbelleğine girmiyor: bir telefon on altı ölçüden en fazla birini kullanıyor ve zaten kareyi gösteren service worker değil, iOS'un kendisi — ana ekrana eklenirken kopyalıyor ve uygulama daha açılmamışken gösteriyor.
 
 **Isınma neden ayrı:** ısınma hareketlerinin ağırlığı ve seans kaydı yoktur, o yüzden `exercises.js`'e girmezler. Hangi ısınmanın hangi güne gideceğini programdaki `warm` alanı söyler: itiş gününde omuz açılır, bacak gününde kalça.
 
@@ -130,6 +136,14 @@ sh tools/video-check.sh
 ```
 
 Her kimliği YouTube'a sorar; `KIRIK` çıkan hemen değişmeli, `ZAYIF` çıkan (çok kısa ya da neredeyse hiç izlenmemiş) sırada bekler. Testlerin içinde değil, çünkü ağ ister.
+
+Açılış karelerini yeniden üretmek (marka değişince ya da listeye cihaz eklenince):
+
+```
+node tools/make-splash.mjs
+```
+
+Dosyaları da `index.html`'deki etiketleri de yazar. Dört tasarım var — `nisan` (öntanımlı), `arma`, `plaka`, `sade`; adını argüman olarak vermek yetiyor.
 
 ## Uyarı
 
